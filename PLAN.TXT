@@ -1,0 +1,410 @@
+WINDSURF PROMPT — Ultimate SvelteKit Blog Editor (TipTap 3)
+PROJECT CONTEXT
+You are building a production-grade, headless rich text blog editor for a SvelteKit application. This editor replaces WordPress Classic Editor with something far superior. It uses TipTap 3.x (ProseMirror) as the editor engine, Svelte 5 runes for all reactivity, SvelteKit 2.x for the framework, and TypeScript strict mode throughout.
+
+This is a PE7 / ICT Level 7 grade implementation. No shortcuts, no placeholders, no "you can add more here" comments. Every file must be complete, production-ready, and fully typed.
+
+TECH STACK — NON-NEGOTIABLE
+Framework: SvelteKit 2.x with Svelte 5 runes ($state, $derived, $effect, $props, $bindable)
+Language: TypeScript strict mode — zero warnings, zero errors, zero any types
+Package Manager: pnpm (never npm, never yarn)
+Editor Engine: TipTap 3.x (@tiptap/core, @tiptap/pm) — used DIRECTLY, no wrappers
+CSS: Scoped CSS with PE7 standards — OKLCH color space, @layer cascade, CSS nesting, logical properties (margin-block-start, padding-inline-end, etc.), design tokens via CSS custom properties. NEVER use Tailwind, DaisyUI, or any CSS framework.
+Icons: Iconify with Phosphor or Carbon icon sets only. NEVER use Lucide icons.
+Snippets over Slots: Use Svelte 5 {#snippet} / {@render} pattern, never <slot>
+No class components: Use runes mode exclusively. No export let, no $:, no stores for new code.
+PACKAGES TO INSTALL
+Run this first before writing any code:
+
+# Core
+pnpm add @tiptap/core @tiptap/pm @tiptap/starter-kit
+
+# Text Formatting
+pnpm add @tiptap/extension-text-align @tiptap/extension-highlight \
+  @tiptap/extension-color @tiptap/extension-text-style \
+  @tiptap/extension-subscript @tiptap/extension-superscript \
+  @tiptap/extension-font-family @tiptap/extension-typography
+
+# Media
+pnpm add @tiptap/extension-image @tiptap/extension-dropcursor \
+  @tiptap/extension-youtube
+
+# Tables
+pnpm add @tiptap/extension-table @tiptap/extension-table-row \
+  @tiptap/extension-table-header @tiptap/extension-table-cell
+
+# Code Blocks (Shiki)
+pnpm add tiptap-extension-code-block-shiki shiki
+
+# Functional
+pnpm add @tiptap/extension-character-count @tiptap/extension-placeholder \
+  @tiptap/extension-table-of-contents @tiptap/extension-mention \
+  @tiptap/extension-task-list @tiptap/extension-task-item
+
+# UI
+pnpm add @tiptap/extension-bubble-menu @tiptap/extension-floating-menu
+
+# Image Processing
+pnpm add -D @sveltejs/enhanced-img
+pnpm add sharp
+WHAT TO BUILD — FILE BY FILE
+1. Editor Core — src/lib/editor/create-editor.ts
+Create a factory function that instantiates a fully configured TipTap Editor instance. This is the single source of truth for all editor extensions.
+
+Requirements:
+
+Export a createBlogEditor(options) function that returns an Editor instance
+Register ALL extensions from the install list above
+Configure StarterKit with codeBlock: false (replaced by Shiki extension)
+Configure Shiki code blocks with dual themes: github-light / github-dark
+Configure Image extension with inline: false, allowBase64: false, and custom attributes: alt (required), title, caption, description, width, height, alignment (left/center/right/full), linkUrl, linkTarget
+Configure Table extension with resizable: true
+Configure TextAlign for heading, paragraph with alignments: left, center, right, justify
+Configure Highlight with multicolor: true
+Configure Placeholder with per-node placeholder text (e.g., "Write your blog post..." for paragraph, "Heading" for heading nodes)
+Configure CharacterCount
+Accept content (TipTap JSONContent or HTML string), editable boolean, and onUpdate callback via options
+Return type must be properly typed
+2. Editor Component — src/lib/editor/BlogEditor.svelte
+The main editor Svelte 5 component.
+
+Requirements:
+
+Use $state for the editor instance, $effect for lifecycle
+Initialize editor with onMount, destroy with onDestroy
+Expose editor instance via $bindable() prop so parent can access it
+Render the editor element with bind:this
+Include the Toolbar component above the editor
+Include the BubbleMenu component (floating on selection)
+Include the FloatingMenu component (slash commands on empty lines)
+Include the MediaModal component (triggered from toolbar or slash menu)
+Include a bottom status bar showing: word count, character count, reading time estimate
+Accept props: content, editable, onUpdate, onSave (Ctrl+S handler), class (for container styling)
+All CSS must be scoped, using PE7 standards (OKLCH colors, logical properties, CSS nesting, @layer)
+3. Toolbar — src/lib/editor/Toolbar.svelte
+Fixed toolbar above the editor.
+
+Requirements:
+
+Accept editor prop (TipTap Editor instance)
+Use $derived to compute active states for all toolbar buttons
+Group buttons logically with visual separators:
+Text Style: Bold, Italic, Underline, Strikethrough, Code
+Headings: H1, H2, H3, H4 dropdown or individual buttons
+Text Color: Color picker popover (foreground + highlight)
+Alignment: Left, Center, Right, Justify
+Lists: Bullet List, Ordered List, Task List
+Insert: Image, Video, YouTube, Table, Horizontal Rule, Code Block, Blockquote
+Utility: Undo, Redo, Clear Formatting
+Every button must use Iconify icons from the Phosphor icon set (e.g., ph:text-bold, ph:text-italic, ph:image, ph:table, etc.)
+Active button states must be visually distinct
+Buttons must be keyboard accessible (proper aria-label, role="toolbar")
+Use snippets for reusable button patterns
+4. Bubble Menu — src/lib/editor/BubbleMenu.svelte
+Floating toolbar that appears on text selection.
+
+Requirements:
+
+Use @tiptap/extension-bubble-menu for positioning
+Show contextual actions based on what's selected:
+Text selected: Bold, Italic, Underline, Strike, Code, Link, Highlight, Text Color
+Image selected: Alignment buttons, Alt Text edit, Caption edit, Remove, Resize
+Table cell selected: Merge, Split, Add/Delete Row/Col, Header toggle
+Link editing: URL input, open in new tab toggle, unlink button
+Smooth fade-in/out transitions
+5. Floating Menu / Slash Commands — src/lib/editor/FloatingMenu.svelte
+Menu that appears on empty lines or when "/" is typed.
+
+Requirements:
+
+Use @tiptap/extension-floating-menu
+Show a searchable command palette with categories:
+Text: Heading 1-4, Paragraph, Blockquote
+Lists: Bullet List, Ordered List, Task List
+Media: Image Upload, YouTube Embed, Video Embed
+Advanced: Table, Code Block, Horizontal Rule, Details/Summary
+Keyboard navigation (up/down arrows, Enter to select, Escape to close)
+Filter items as user types after "/"
+Each item shows an icon (Phosphor), title, and description
+6. Media Modal — src/lib/editor/MediaModal.svelte
+THIS IS THE CRITICAL SEO COMPONENT. WordPress-style "Add Media" dialog, but better.
+
+Requirements:
+
+Triggered from toolbar "Image" button or slash command
+Upload Tab:
+Drag-and-drop zone with visual feedback (use native HTML5 drag events + bind:files)
+File picker button as fallback
+Accept: image/jpeg, image/png, image/webp, image/avif, image/gif
+Show upload progress indicator
+Preview the image after selection/upload
+Maximum file size validation (configurable, default 10MB)
+URL Tab:
+Paste image URL input
+Preview on URL entry
+SEO Metadata Fields (ALL required for production use):
+Title: <input> — maps to title attribute on <img>
+Alt Text: <textarea> — maps to alt attribute. Show a helper tooltip: "Describe the image for screen readers and SEO. Be specific and descriptive."
+Caption: <input> — displayed below the image in the post
+Description: <textarea> — stored in metadata for media library/CMS purposes
+Display Options:
+Size: Thumbnail (150px), Medium (300px), Large (1024px), Full Size
+Alignment: Left, Center, Right, Full Width
+Link To: None, Custom URL, Media File
+Insert Button: Disabled until at least src and alt are provided
+Modal must be accessible: focus trap, Escape to close, proper ARIA roles
+All metadata stored as TipTap node attributes in the document JSON
+7. Custom Image Extension — src/lib/editor/extensions/custom-image.ts
+Extend @tiptap/extension-image with SEO attributes and custom NodeView.
+
+Requirements:
+
+Extend the base Image extension using .extend()
+Add custom attributes: caption, description, alignment, linkUrl, linkTarget, width, height
+All attributes must have parseHTML and renderHTML handlers
+When rendered in the editor, show the image with:
+Caption below the image (editable inline)
+Visual alignment indicator
+Resize handles (if resizable is enabled)
+Selected state styling
+When rendered to HTML for the blog front-end, output semantic markup:
+<figure class="blog-image" data-alignment="center">  <img src="..." alt="..." title="..." width="..." height="..." loading="lazy" />  <figcaption>Caption text here</figcaption></figure>
+8. Custom Video Extension — src/lib/editor/extensions/custom-video.ts
+Custom TipTap node for self-hosted video.
+
+Requirements:
+
+Block-level node with attributes: src, poster, title, alt, width, height, alignment, controls (default true), autoplay (default false), muted, loop
+ParseHTML: match <video> tags
+RenderHTML: output <figure class="blog-video"><video ...><figcaption>...</figcaption></figure>
+9. Custom Audio Extension — src/lib/editor/extensions/custom-audio.ts
+Custom TipTap node for audio embeds.
+
+Requirements:
+
+Block-level node with attributes: src, title, controls (default true)
+ParseHTML: match <audio> tags
+RenderHTML: output semantic <figure class="blog-audio"><audio ...><figcaption>...</figcaption></figure>
+10. Server Endpoints — src/routes/api/editor/
+src/routes/api/editor/upload/+server.ts
+Requirements:
+
+POST endpoint accepting multipart/form-data with image file
+Validate file type (jpeg, png, webp, avif, gif) and size
+Use Sharp to:
+Generate WebP version
+Generate AVIF version
+Generate thumbnail (150px), medium (300px), large (1024px), and full-size variants
+Extract EXIF data, strip from output (privacy)
+Read natural width/height for response
+Storage Strategy (implement both, feature-flagged via env var STORAGE_BACKEND):
+local: Save to static/uploads/{year}/{month}/{filename}-{size}.{format}
+r2: Upload to Cloudflare R2 bucket via S3-compatible API (use @aws-sdk/client-s3)
+Return JSON: { url, thumbnailUrl, mediumUrl, largeUrl, width, height, format, size }
+src/routes/api/editor/posts/+server.ts
+Requirements:
+
+GET: List all posts with pagination, filtering by status (draft/published/scheduled)
+POST: Create new post — accepts { title, slug, content (TipTap JSON), excerpt, featuredImage, categories, tags, status, publishedAt, seo: { metaTitle, metaDescription, focusKeyword } }
+src/routes/api/editor/posts/[id]/+server.ts
+Requirements:
+
+GET: Single post by ID
+PUT: Update post
+DELETE: Soft delete (set status to 'trashed')
+11. Database Schema — src/lib/server/db/schema.ts
+Requirements:
+
+Use better-sqlite3 (Tier 2 storage)
+Tables:
+posts: id, title, slug (unique), content (TipTap JSON blob), excerpt, featured_image_url, status (draft|published|scheduled|trashed), author_id, published_at, created_at, updated_at, seo_meta_title, seo_meta_description, seo_focus_keyword
+categories: id, name, slug, description, parent_id (self-referencing)
+tags: id, name, slug
+post_categories: post_id, category_id (junction)
+post_tags: post_id, tag_id (junction)
+media: id, filename, original_name, mime_type, size_bytes, width, height, url, thumbnail_url, medium_url, large_url, alt_text, title, caption, description, uploaded_at
+Include migration SQL and seed function
+12. Post Editor Page — src/routes/admin/posts/[id]/+page.svelte
+Full blog post editing page.
+
+Requirements:
+
+Load post data via +page.server.ts load function
+Title field at top (large, contenteditable or <input> with auto-resize)
+Slug field (auto-generated from title, editable)
+BlogEditor component for the content body
+Sidebar panel with:
+Publish controls: Status dropdown, Publish Date picker, Save Draft, Publish buttons
+Categories: Checkbox tree (supports hierarchy)
+Tags: Tag input with autocomplete
+Featured Image: Uses the MediaModal
+Excerpt: Textarea
+SEO panel: Meta Title (with character count / 60), Meta Description (with character count / 160), Focus Keyword
+Auto-save every 30 seconds (debounced)
+Ctrl+S / Cmd+S save handler
+Unsaved changes warning on navigation
+13. Editor Styles — src/lib/editor/editor.css
+Global styles for TipTap's .ProseMirror output inside the editor.
+
+Requirements:
+
+Style all TipTap-rendered HTML elements: headings (h1-h6), paragraphs, lists (ul, ol, task lists), blockquotes, code blocks (with Shiki themes), tables, images, figures, horizontal rules, links
+Use :global modifier in Svelte scoped styles to target .ProseMirror children (as per Svelte docs for {@html} content)
+OKLCH color tokens for text, backgrounds, borders, accents
+Responsive typography using clamp()
+Proper focus styles for accessibility
+Print-friendly styles via @media print
+Dark mode support via prefers-color-scheme or data attribute
+CRITICAL RULES
+NEVER use Tailwind CSS, DaisyUI, or any utility-first CSS framework. All styles must be scoped CSS or CSS custom properties following PE7 standards.
+
+NEVER use Lucide icons. Use Iconify with Phosphor icon set (@iconify-json/ph) or Carbon icon set (@iconify-json/carbon).
+
+NEVER use <slot>. Use Svelte 5 {#snippet} and {@render} patterns.
+
+NEVER use export let for props. Use let { prop = $bindable() } = $props() pattern.
+
+NEVER use $: reactive declarations. Use $derived or $effect.
+
+NEVER use Svelte stores for new code. Use $state in .svelte.ts files for shared reactive state.
+
+NEVER use svelte-tiptap, @friendofsvelte/tipex, @lux-ok/sv5tiptap, or any TipTap wrapper library. Use @tiptap/core directly with manual Svelte integration.
+
+ALL images in the editor MUST have alt text. The MediaModal should enforce this — the Insert button stays disabled until alt text is provided.
+
+TipTap Editor integration pattern for Svelte 5:
+
+<script lang="ts">
+  import { onMount, onDestroy } from 'svelte';
+  import { Editor } from '@tiptap/core';
+
+  let element = $state<HTMLDivElement>();
+  let editorState = $state<{ editor: Editor | null }>({ editor: null });
+
+  onMount(() => {
+    editorState.editor = new Editor({
+      element: element,
+      extensions: [/* ... */],
+      content: '...',
+      onTransaction: ({ editor }) => {
+        editorState = { editor };
+      },
+    });
+  });
+
+  onDestroy(() => {
+    editorState.editor?.destroy();
+  });
+</script>
+
+<div bind:this={element}></div>
+CSS must use logical properties:
+
+margin-block-start not margin-top
+padding-inline-end not padding-right
+border-block-end not border-bottom
+inset-inline-start not left
+CSS must use OKLCH colors:
+
+:root {
+  --color-text: oklch(0.95 0 0);
+  --color-bg: oklch(0.13 0.01 260);
+  --color-accent: oklch(0.7 0.15 45);
+  --color-border: oklch(0.3 0.02 260);
+}
+File naming convention:
+
+Components: PascalCase.svelte
+Utilities/modules: kebab-case.ts
+Extensions: kebab-case.ts in extensions/ directory
+Server files: SvelteKit conventions (+page.svelte, +server.ts, +page.server.ts)
+Every TypeScript file must have explicit return types on exported functions and proper interface/type definitions. No implicit any.
+
+DIRECTORY STRUCTURE
+src/
+├── lib/
+│   ├── editor/
+│   │   ├── BlogEditor.svelte          # Main editor component
+│   │   ├── Toolbar.svelte             # Fixed toolbar
+│   │   ├── BubbleMenu.svelte          # Floating selection menu
+│   │   ├── FloatingMenu.svelte        # Slash commands menu
+│   │   ├── MediaModal.svelte          # Image/media upload dialog
+│   │   ├── StatusBar.svelte           # Word count, reading time
+│   │   ├── create-editor.ts           # Editor factory function
+│   │   ├── editor.css                 # ProseMirror content styles
+│   │   ├── types.ts                   # All editor-related TypeScript types
+│   │   └── extensions/
+│   │       ├── custom-image.ts        # Extended image with SEO attrs
+│   │       ├── custom-video.ts        # Self-hosted video node
+│   │       ├── custom-audio.ts        # Audio embed node
+│   │       └── slash-commands.ts      # Slash command suggestion config
+│   ├── server/
+│   │   └── db/
+│   │       ├── schema.ts             # Database schema + migrations
+│   │       ├── client.ts             # Database client singleton
+│   │       └── queries.ts            # Typed query functions
+│   └── components/
+│       └── ui/
+│           ├── Modal.svelte           # Reusable modal component
+│           ├── Popover.svelte         # Reusable popover
+│           ├── ColorPicker.svelte     # Color picker for text/highlight
+│           └── Icon.svelte            # Iconify wrapper component
+├── routes/
+│   ├── admin/
+│   │   └── posts/
+│   │       ├── +page.svelte           # Posts list
+│   │       ├── +page.server.ts        # Load posts
+│   │       ├── new/
+│   │       │   └── +page.svelte       # New post (reuses editor)
+│   │       └── [id]/
+│   │           ├── +page.svelte       # Edit post
+│   │           └── +page.server.ts    # Load single post
+│   └── api/
+│       └── editor/
+│           ├── upload/
+│           │   └── +server.ts         # Image upload endpoint
+│           └── posts/
+│               ├── +server.ts         # List/create posts
+│               └── [id]/
+│                   └── +server.ts     # Get/update/delete post
+└── app.css                            # Global PE7 design tokens
+BUILD ORDER
+Execute in this exact sequence:
+
+Install all packages (the pnpm command above)
+src/lib/editor/types.ts — All TypeScript types first
+src/lib/components/ui/Icon.svelte — Iconify wrapper
+src/lib/components/ui/Modal.svelte — Reusable modal
+src/lib/components/ui/Popover.svelte — Reusable popover
+src/lib/components/ui/ColorPicker.svelte — Color picker
+src/lib/editor/extensions/custom-image.ts — Extended image node
+src/lib/editor/extensions/custom-video.ts — Video node
+src/lib/editor/extensions/custom-audio.ts — Audio node
+src/lib/editor/extensions/slash-commands.ts — Slash command config
+src/lib/editor/create-editor.ts — Editor factory
+src/lib/editor/editor.css — ProseMirror content styles
+src/lib/editor/StatusBar.svelte — Word/char count bar
+src/lib/editor/Toolbar.svelte — Main toolbar
+src/lib/editor/BubbleMenu.svelte — Selection toolbar
+src/lib/editor/FloatingMenu.svelte — Slash commands UI
+src/lib/editor/MediaModal.svelte — Media upload dialog
+src/lib/editor/BlogEditor.svelte — Main editor (composes all above)
+src/lib/server/db/schema.ts — Database schema
+src/lib/server/db/client.ts — Database client
+src/lib/server/db/queries.ts — Query functions
+src/routes/api/editor/upload/+server.ts — Upload endpoint
+src/routes/api/editor/posts/+server.ts — Posts CRUD
+src/routes/api/editor/posts/[id]/+server.ts — Single post CRUD
+src/routes/admin/posts/+page.server.ts + +page.svelte — Posts list
+src/routes/admin/posts/[id]/+page.server.ts + +page.svelte — Post editor page
+app.css — Global PE7 design tokens
+OUTPUT FORMAT
+For each file:
+
+Write the COMPLETE file — no truncation, no "... rest of implementation"
+Include all imports at the top
+Include all TypeScript types/interfaces
+Include all CSS (scoped in Svelte components, PE7 standards)
+Include all error handling
+Include JSDoc comments on exported functions/types
+Start with step 1 (package install) and step 2 (types.ts), then proceed through the build order.
