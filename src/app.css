@@ -1,0 +1,229 @@
+/*
+ * Global PE7 Design Tokens & Base Styles
+ * OKLCH color space, @layer cascade, logical properties, CSS nesting.
+ */
+
+/* ─── Layer Order ────────────────────────────────────────────────── */
+@layer reset, tokens, base, components, editor, pages;
+
+/* ─── Reset ──────────────────────────────────────────────────────── */
+@layer reset {
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+		margin: 0;
+		padding: 0;
+	}
+
+	html {
+		-webkit-text-size-adjust: 100%;
+		text-size-adjust: 100%;
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+	}
+
+	body {
+		min-block-size: 100dvh;
+		line-height: 1.6;
+	}
+
+	img,
+	video,
+	audio,
+	canvas,
+	svg {
+		display: block;
+		max-inline-size: 100%;
+	}
+
+	input,
+	button,
+	textarea,
+	select {
+		font: inherit;
+	}
+
+	a {
+		color: inherit;
+	}
+
+	button {
+		cursor: pointer;
+	}
+}
+
+/* ─── Design Tokens ──────────────────────────────────────────────── */
+@layer tokens {
+	:root {
+		/* Color Palette — OKLCH */
+		--color-bg: oklch(0.1 0.005 260);
+		--color-surface: oklch(0.13 0.01 260);
+		--color-surface-elevated: oklch(0.18 0.01 260);
+		--color-hover: oklch(0.22 0.02 260);
+		--color-border: oklch(0.25 0.02 260);
+
+		--color-text: oklch(0.95 0 0);
+		--color-text-secondary: oklch(0.82 0.02 260);
+		--color-text-muted: oklch(0.55 0.02 260);
+
+		--color-accent: oklch(0.7 0.15 250);
+		--color-accent-muted: oklch(0.7 0.15 250 / 0.2);
+		--color-accent-hover: oklch(0.65 0.17 250);
+
+		--color-success: oklch(0.7 0.18 145);
+		--color-warning: oklch(0.75 0.16 85);
+		--color-danger: oklch(0.65 0.22 25);
+
+		--color-code-bg: oklch(0.14 0.01 260);
+		--color-code-text: oklch(0.8 0.12 30);
+
+		--color-editor-bg: oklch(0.1 0.005 260);
+
+		/* Typography */
+		--font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+		--font-heading: 'Inter', system-ui, sans-serif;
+		--font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+
+		/* Spacing Scale */
+		--space-1: 4px;
+		--space-2: 8px;
+		--space-3: 12px;
+		--space-4: 16px;
+		--space-5: 24px;
+		--space-6: 32px;
+		--space-7: 48px;
+		--space-8: 64px;
+
+		/* Border Radius */
+		--radius-sm: 4px;
+		--radius-md: 6px;
+		--radius-lg: 8px;
+		--radius-xl: 12px;
+		--radius-full: 9999px;
+
+		/* Shadows */
+		--shadow-sm: 0 1px 3px oklch(0 0 0 / 0.15);
+		--shadow-md: 0 4px 12px oklch(0 0 0 / 0.2);
+		--shadow-lg: 0 12px 32px oklch(0 0 0 / 0.3);
+
+		/* Transitions */
+		--transition-fast: 0.1s ease;
+		--transition-base: 0.15s ease;
+		--transition-slow: 0.25s ease;
+	}
+
+	/* Light mode overrides */
+	@media (prefers-color-scheme: light) {
+		:root {
+			--color-bg: oklch(0.98 0.005 260);
+			--color-surface: oklch(1 0 0);
+			--color-surface-elevated: oklch(0.97 0.005 260);
+			--color-hover: oklch(0.94 0.01 260);
+			--color-border: oklch(0.88 0.01 260);
+
+			--color-text: oklch(0.15 0 0);
+			--color-text-secondary: oklch(0.35 0.02 260);
+			--color-text-muted: oklch(0.5 0.02 260);
+
+			--color-accent: oklch(0.55 0.2 250);
+			--color-accent-muted: oklch(0.55 0.2 250 / 0.1);
+			--color-accent-hover: oklch(0.5 0.22 250);
+
+			--color-code-bg: oklch(0.96 0.005 260);
+			--color-code-text: oklch(0.4 0.15 30);
+
+			--color-editor-bg: oklch(1 0 0);
+		}
+	}
+}
+
+/* ─── Base Styles ────────────────────────────────────────────────── */
+@layer base {
+	body {
+		font-family: var(--font-body);
+		background: var(--color-bg);
+		color: var(--color-text);
+	}
+
+	::selection {
+		background: oklch(0.7 0.15 250 / 0.3);
+	}
+
+	:focus-visible {
+		outline: 2px solid var(--color-accent);
+		outline-offset: 2px;
+	}
+
+	/* Scrollbar styling for dark theme */
+	::-webkit-scrollbar {
+		inline-size: 8px;
+		block-size: 8px;
+	}
+
+	::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	::-webkit-scrollbar-thumb {
+		background: var(--color-border);
+		border-radius: var(--radius-full);
+
+		&:hover {
+			background: oklch(0.4 0.02 260);
+		}
+	}
+
+	/* Reusable button styles */
+	.btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding-block: 8px;
+		padding-inline: 16px;
+		border: none;
+		border-radius: var(--radius-md);
+		font-size: 0.875rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: background var(--transition-fast), opacity var(--transition-fast);
+
+		&:disabled {
+			opacity: 0.5;
+			cursor: not-allowed;
+		}
+
+		&:focus-visible {
+			outline: 2px solid var(--color-accent);
+			outline-offset: 2px;
+		}
+	}
+
+	.btn-primary {
+		background: var(--color-accent);
+		color: oklch(0.1 0 0);
+
+		&:hover:not(:disabled) {
+			background: var(--color-accent-hover);
+		}
+	}
+
+	.btn-secondary {
+		background: var(--color-surface-elevated);
+		color: var(--color-text);
+
+		&:hover:not(:disabled) {
+			background: var(--color-hover);
+		}
+	}
+
+	.btn-ghost {
+		background: transparent;
+		color: var(--color-text-muted);
+
+		&:hover:not(:disabled) {
+			background: var(--color-hover);
+			color: var(--color-text);
+		}
+	}
+}
