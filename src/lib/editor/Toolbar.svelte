@@ -49,6 +49,20 @@
 		}
 	}
 
+	function insertVideo(): void {
+		const url = prompt('Enter video URL:');
+		if (url && editor) {
+			editor
+				.chain()
+				.focus()
+				.insertContent({
+					type: 'customVideo',
+					attrs: { src: url, title: '', alt: '', controls: true }
+				})
+				.run();
+		}
+	}
+
 	function insertTable(): void {
 		if (editor) {
 			editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
@@ -105,21 +119,39 @@
 <div class="toolbar" role="toolbar" aria-label="Editor formatting toolbar">
 	<!-- Text Style -->
 	<div class="toolbar-group">
-		{@render toolbarButton('ph:text-bolder', 'Bold', isBold, () => cmd(e => e.chain().focus().toggleBold().run()))}
-		{@render toolbarButton('ph:text-italic', 'Italic', isItalic, () => cmd(e => e.chain().focus().toggleItalic().run()))}
-		{@render toolbarButton('ph:text-underline', 'Underline', isUnderline, () => cmd(e => e.chain().focus().toggleUnderline().run()))}
-		{@render toolbarButton('ph:text-strikethrough', 'Strikethrough', isStrike, () => cmd(e => e.chain().focus().toggleStrike().run()))}
-		{@render toolbarButton('ph:code', 'Inline Code', isCode, () => cmd(e => e.chain().focus().toggleCode().run()))}
+		{@render toolbarButton('ph:text-bolder', 'Bold', isBold, () =>
+			cmd((e) => e.chain().focus().toggleBold().run())
+		)}
+		{@render toolbarButton('ph:text-italic', 'Italic', isItalic, () =>
+			cmd((e) => e.chain().focus().toggleItalic().run())
+		)}
+		{@render toolbarButton('ph:text-underline', 'Underline', isUnderline, () =>
+			cmd((e) => e.chain().focus().toggleUnderline().run())
+		)}
+		{@render toolbarButton('ph:text-strikethrough', 'Strikethrough', isStrike, () =>
+			cmd((e) => e.chain().focus().toggleStrike().run())
+		)}
+		{@render toolbarButton('ph:code', 'Inline Code', isCode, () =>
+			cmd((e) => e.chain().focus().toggleCode().run())
+		)}
 	</div>
 
 	{@render separator()}
 
 	<!-- Headings -->
 	<div class="toolbar-group">
-		{@render toolbarButton('ph:text-h-one', 'Heading 1', isH1, () => cmd(e => e.chain().focus().toggleHeading({ level: 1 }).run()))}
-		{@render toolbarButton('ph:text-h-two', 'Heading 2', isH2, () => cmd(e => e.chain().focus().toggleHeading({ level: 2 }).run()))}
-		{@render toolbarButton('ph:text-h-three', 'Heading 3', isH3, () => cmd(e => e.chain().focus().toggleHeading({ level: 3 }).run()))}
-		{@render toolbarButton('ph:text-h-four', 'Heading 4', isH4, () => cmd(e => e.chain().focus().toggleHeading({ level: 4 }).run()))}
+		{@render toolbarButton('ph:text-h-one', 'Heading 1', isH1, () =>
+			cmd((e) => e.chain().focus().toggleHeading({ level: 1 }).run())
+		)}
+		{@render toolbarButton('ph:text-h-two', 'Heading 2', isH2, () =>
+			cmd((e) => e.chain().focus().toggleHeading({ level: 2 }).run())
+		)}
+		{@render toolbarButton('ph:text-h-three', 'Heading 3', isH3, () =>
+			cmd((e) => e.chain().focus().toggleHeading({ level: 3 }).run())
+		)}
+		{@render toolbarButton('ph:text-h-four', 'Heading 4', isH4, () =>
+			cmd((e) => e.chain().focus().toggleHeading({ level: 4 }).run())
+		)}
 	</div>
 
 	{@render separator()}
@@ -159,19 +191,33 @@
 
 	<!-- Alignment -->
 	<div class="toolbar-group">
-		{@render toolbarButton('ph:text-align-left', 'Align Left', isAlignLeft, () => cmd(e => e.chain().focus().setTextAlign('left').run()))}
-		{@render toolbarButton('ph:text-align-center', 'Align Center', isAlignCenter, () => cmd(e => e.chain().focus().setTextAlign('center').run()))}
-		{@render toolbarButton('ph:text-align-right', 'Align Right', isAlignRight, () => cmd(e => e.chain().focus().setTextAlign('right').run()))}
-		{@render toolbarButton('ph:text-align-justify', 'Align Justify', isAlignJustify, () => cmd(e => e.chain().focus().setTextAlign('justify').run()))}
+		{@render toolbarButton('ph:text-align-left', 'Align Left', isAlignLeft, () =>
+			cmd((e) => e.chain().focus().setTextAlign('left').run())
+		)}
+		{@render toolbarButton('ph:text-align-center', 'Align Center', isAlignCenter, () =>
+			cmd((e) => e.chain().focus().setTextAlign('center').run())
+		)}
+		{@render toolbarButton('ph:text-align-right', 'Align Right', isAlignRight, () =>
+			cmd((e) => e.chain().focus().setTextAlign('right').run())
+		)}
+		{@render toolbarButton('ph:text-align-justify', 'Align Justify', isAlignJustify, () =>
+			cmd((e) => e.chain().focus().setTextAlign('justify').run())
+		)}
 	</div>
 
 	{@render separator()}
 
 	<!-- Lists -->
 	<div class="toolbar-group">
-		{@render toolbarButton('ph:list-bullets', 'Bullet List', isBulletList, () => cmd(e => e.chain().focus().toggleBulletList().run()))}
-		{@render toolbarButton('ph:list-numbers', 'Ordered List', isOrderedList, () => cmd(e => e.chain().focus().toggleOrderedList().run()))}
-		{@render toolbarButton('ph:check-square', 'Task List', isTaskList, () => cmd(e => e.chain().focus().toggleTaskList().run()))}
+		{@render toolbarButton('ph:list-bullets', 'Bullet List', isBulletList, () =>
+			cmd((e) => e.chain().focus().toggleBulletList().run())
+		)}
+		{@render toolbarButton('ph:list-numbers', 'Ordered List', isOrderedList, () =>
+			cmd((e) => e.chain().focus().toggleOrderedList().run())
+		)}
+		{@render toolbarButton('ph:check-square', 'Task List', isTaskList, () =>
+			cmd((e) => e.chain().focus().toggleTaskList().run())
+		)}
 	</div>
 
 	{@render separator()}
@@ -179,20 +225,41 @@
 	<!-- Insert -->
 	<div class="toolbar-group">
 		{@render toolbarButton('ph:image', 'Insert Image', false, () => onInsertImage?.())}
+		{@render toolbarButton('ph:video-camera', 'Insert Video', false, insertVideo)}
 		{@render toolbarButton('ph:youtube-logo', 'Insert YouTube Video', false, insertYoutube)}
 		{@render toolbarButton('ph:table', 'Insert Table', false, insertTable)}
-		{@render toolbarButton('ph:minus', 'Horizontal Rule', false, () => cmd(e => e.chain().focus().setHorizontalRule().run()))}
-		{@render toolbarButton('ph:code-block', 'Code Block', isCodeBlock, () => cmd(e => e.chain().focus().toggleCodeBlock().run()))}
-		{@render toolbarButton('ph:quotes', 'Blockquote', isBlockquote, () => cmd(e => e.chain().focus().toggleBlockquote().run()))}
+		{@render toolbarButton('ph:minus', 'Horizontal Rule', false, () =>
+			cmd((e) => e.chain().focus().setHorizontalRule().run())
+		)}
+		{@render toolbarButton('ph:code-block', 'Code Block', isCodeBlock, () =>
+			cmd((e) => e.chain().focus().toggleCodeBlock().run())
+		)}
+		{@render toolbarButton('ph:quotes', 'Blockquote', isBlockquote, () =>
+			cmd((e) => e.chain().focus().toggleBlockquote().run())
+		)}
 	</div>
 
 	{@render separator()}
 
 	<!-- Utility -->
 	<div class="toolbar-group">
-		{@render toolbarButton('ph:arrow-u-up-left', 'Undo', false, () => cmd(e => e.chain().focus().undo().run()), !editor?.can().undo())}
-		{@render toolbarButton('ph:arrow-u-up-right', 'Redo', false, () => cmd(e => e.chain().focus().redo().run()), !editor?.can().redo())}
-		{@render toolbarButton('ph:eraser', 'Clear Formatting', false, () => cmd(e => e.chain().focus().clearNodes().unsetAllMarks().run()))}
+		{@render toolbarButton(
+			'ph:arrow-u-up-left',
+			'Undo',
+			false,
+			() => cmd((e) => e.chain().focus().undo().run()),
+			!editor?.can().undo()
+		)}
+		{@render toolbarButton(
+			'ph:arrow-u-up-right',
+			'Redo',
+			false,
+			() => cmd((e) => e.chain().focus().redo().run()),
+			!editor?.can().redo()
+		)}
+		{@render toolbarButton('ph:eraser', 'Clear Formatting', false, () =>
+			cmd((e) => e.chain().focus().clearNodes().unsetAllMarks().run())
+		)}
 	</div>
 </div>
 
@@ -236,7 +303,9 @@
 			background: transparent;
 			color: var(--color-text-muted, oklch(0.65 0.02 260));
 			cursor: pointer;
-			transition: background 0.12s ease, color 0.12s ease;
+			transition:
+				background 0.12s ease,
+				color 0.12s ease;
 
 			&:hover:not(:disabled) {
 				background: var(--color-hover, oklch(0.22 0.02 260));

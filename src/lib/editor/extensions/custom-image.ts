@@ -31,6 +31,8 @@ export const CustomImage = Image.extend({
 
 	inline: false,
 
+	allowBase64: false,
+
 	draggable: true,
 
 	addAttributes() {

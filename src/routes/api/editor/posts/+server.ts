@@ -1,6 +1,6 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
-import { db } from '$lib/server/db/index.js';
+import { db } from '$lib/server/db/client.js';
 import { listPosts, createPost } from '$lib/server/db/queries.js';
 import type { PostPayload, PostStatus } from '$lib/editor/types.js';
 

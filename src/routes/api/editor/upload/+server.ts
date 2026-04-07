@@ -1,6 +1,6 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
-import { db } from '$lib/server/db/index.js';
+import { db } from '$lib/server/db/client.js';
 import { insertMedia } from '$lib/server/db/queries.js';
 import sharp from 'sharp';
 import { env } from '$env/dynamic/private';
@@ -31,7 +31,7 @@ const SIZE_VARIANTS: SizeVariant[] = [
 /**
  * POST /api/editor/upload
  * Accepts multipart/form-data with an image file.
- * Processes with Sharp: generates WebP variants at multiple sizes.
+ * Processes with Sharp: generates WebP + AVIF versions at multiple sizes.
  * Storage backend is feature-flagged via STORAGE_BACKEND env var.
  */
 export const POST: RequestHandler = async ({ request }) => {
@@ -70,17 +70,40 @@ export const POST: RequestHandler = async ({ request }) => {
 		const urls: Record<string, string> = {};
 
 		if (storageBackend === 'r2') {
-			urls.full = await uploadToR2(cleanBuffer, `${year}/${month}/${baseName}-${timestamp}-full.webp`, 'image/webp');
+			/* Full size WebP */
+			urls.full = await uploadToR2(
+				await sharp(cleanBuffer).webp({ quality: 85 }).toBuffer(),
+				`${year}/${month}/${baseName}-${timestamp}-full.webp`,
+				'image/webp'
+			);
 
+			/* Full size AVIF */
+			urls.fullAvif = await uploadToR2(
+				await sharp(cleanBuffer).avif({ quality: 65 }).toBuffer(),
+				`${year}/${month}/${baseName}-${timestamp}-full.avif`,
+				'image/avif'
+			);
+
+			/* Size variants in WebP + AVIF */
 			for (const variant of SIZE_VARIANTS) {
-				const resized = await sharp(cleanBuffer)
+				const resizedWebp = await sharp(cleanBuffer)
 					.resize({ width: variant.width, withoutEnlargement: true })
 					.webp({ quality: 82 })
 					.toBuffer();
 				urls[variant.suffix] = await uploadToR2(
-					resized,
+					resizedWebp,
 					`${year}/${month}/${baseName}-${timestamp}-${variant.suffix}.webp`,
 					'image/webp'
+				);
+
+				const resizedAvif = await sharp(cleanBuffer)
+					.resize({ width: variant.width, withoutEnlargement: true })
+					.avif({ quality: 60 })
+					.toBuffer();
+				urls[`${variant.suffix}Avif`] = await uploadToR2(
+					resizedAvif,
+					`${year}/${month}/${baseName}-${timestamp}-${variant.suffix}.avif`,
+					'image/avif'
 				);
 			}
 		} else {
@@ -91,19 +114,33 @@ export const POST: RequestHandler = async ({ request }) => {
 
 			/* Full size WebP */
 			const fullWebp = await sharp(cleanBuffer).webp({ quality: 85 }).toBuffer();
-			const fullFilename = `${baseName}-${timestamp}-full.webp`;
-			writeFileSync(join(uploadDir, fullFilename), fullWebp);
-			urls.full = `/uploads/${year}/${month}/${fullFilename}`;
+			const fullWebpFilename = `${baseName}-${timestamp}-full.webp`;
+			writeFileSync(join(uploadDir, fullWebpFilename), fullWebp);
+			urls.full = `/uploads/${year}/${month}/${fullWebpFilename}`;
 
-			/* Size variants */
+			/* Full size AVIF */
+			const fullAvif = await sharp(cleanBuffer).avif({ quality: 65 }).toBuffer();
+			const fullAvifFilename = `${baseName}-${timestamp}-full.avif`;
+			writeFileSync(join(uploadDir, fullAvifFilename), fullAvif);
+			urls.fullAvif = `/uploads/${year}/${month}/${fullAvifFilename}`;
+
+			/* Size variants in WebP + AVIF */
 			for (const variant of SIZE_VARIANTS) {
-				const resized = await sharp(cleanBuffer)
+				const resizedWebp = await sharp(cleanBuffer)
 					.resize({ width: variant.width, withoutEnlargement: true })
 					.webp({ quality: 82 })
 					.toBuffer();
-				const filename = `${baseName}-${timestamp}-${variant.suffix}.webp`;
-				writeFileSync(join(uploadDir, filename), resized);
-				urls[variant.suffix] = `/uploads/${year}/${month}/${filename}`;
+				const webpFilename = `${baseName}-${timestamp}-${variant.suffix}.webp`;
+				writeFileSync(join(uploadDir, webpFilename), resizedWebp);
+				urls[variant.suffix] = `/uploads/${year}/${month}/${webpFilename}`;
+
+				const resizedAvif = await sharp(cleanBuffer)
+					.resize({ width: variant.width, withoutEnlargement: true })
+					.avif({ quality: 60 })
+					.toBuffer();
+				const avifFilename = `${baseName}-${timestamp}-${variant.suffix}.avif`;
+				writeFileSync(join(uploadDir, avifFilename), resizedAvif);
+				urls[`${variant.suffix}Avif`] = `/uploads/${year}/${month}/${avifFilename}`;
 			}
 		}
 
@@ -130,6 +167,10 @@ export const POST: RequestHandler = async ({ request }) => {
 			thumbnailUrl: urls.thumbnail,
 			mediumUrl: urls.medium,
 			largeUrl: urls.large,
+			avifUrl: urls.fullAvif,
+			thumbnailAvifUrl: urls.thumbnailAvif,
+			mediumAvifUrl: urls.mediumAvif,
+			largeAvifUrl: urls.largeAvif,
 			width: naturalWidth,
 			height: naturalHeight,
 			format: 'webp',
@@ -154,7 +195,9 @@ async function uploadToR2(buffer: Buffer, key: string, contentType: string): Pro
 	const r2PublicUrl = env.R2_PUBLIC_URL;
 
 	if (!r2AccountId || !r2AccessKeyId || !r2SecretAccessKey || !r2BucketName) {
-		throw new Error('R2 configuration missing. Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME.');
+		throw new Error(
+			'R2 configuration missing. Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME.'
+		);
 	}
 
 	const client = new S3Client({

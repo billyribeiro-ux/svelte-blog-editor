@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types.js';
-import { db } from '$lib/server/db/index.js';
+import { db } from '$lib/server/db/client.js';
 import { listPosts, listCategories, listTags } from '$lib/server/db/queries.js';
 import type { PostStatus } from '$lib/editor/types.js';
 

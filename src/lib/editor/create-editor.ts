@@ -22,6 +22,8 @@ import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import BubbleMenu from '@tiptap/extension-bubble-menu';
 import FloatingMenu from '@tiptap/extension-floating-menu';
+import Mention from '@tiptap/extension-mention';
+import { TableOfContents } from '@tiptap/extension-table-of-contents';
 import { CodeBlockShiki } from 'tiptap-extension-code-block-shiki';
 
 import { CustomImage } from './extensions/custom-image.js';
@@ -113,6 +115,8 @@ export function createBlogEditor(element: HTMLElement, options: BlogEditorOption
 
 			/* Functional */
 			CharacterCount,
+			Mention,
+			TableOfContents,
 			Placeholder.configure({
 				placeholder: ({ node }) => {
 					if (node.type.name === 'heading') {
