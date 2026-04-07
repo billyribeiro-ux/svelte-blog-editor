@@ -79,12 +79,9 @@
 	}
 </script>
 
-<div
-	class="blog-editor {className}"
-	role="application"
-	aria-label="Blog editor"
-	onkeydown={handleKeydown}
->
+<svelte:window onkeydown={handleKeydown} />
+
+<div class="blog-editor {className}" role="application" aria-label="Blog editor">
 	<Toolbar editor={currentEditor} onInsertImage={openMediaModal} />
 
 	<div class="editor-content">

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import { browser } from '$app/environment';
 	import type { Snippet } from 'svelte';
 	import Icon from './Icon.svelte';
 
@@ -71,10 +72,12 @@
 	});
 
 	onMount(() => {
+		if (!browser) return;
 		document.addEventListener('keydown', handleKeydown);
 	});
 
 	onDestroy(() => {
+		if (!browser) return;
 		document.removeEventListener('keydown', handleKeydown);
 	});
 </script>
@@ -84,7 +87,6 @@
 		bind:this={dialogEl}
 		class="modal"
 		aria-modal="true"
-		role="dialog"
 		aria-label={title}
 		onclick={handleBackdropClick}
 	>
@@ -95,12 +97,7 @@
 				{:else}
 					<h2 class="modal-title">{title}</h2>
 				{/if}
-				<button
-					class="modal-close"
-					type="button"
-					aria-label="Close modal"
-					onclick={close}
-				>
+				<button class="modal-close" type="button" aria-label="Close modal" onclick={close}>
 					<Icon name="ph:x-bold" size={18} />
 				</button>
 			</div>
@@ -184,7 +181,9 @@
 			background: transparent;
 			color: var(--color-text-muted, oklch(0.65 0.02 260));
 			cursor: pointer;
-			transition: background 0.15s ease, color 0.15s ease;
+			transition:
+				background 0.15s ease,
+				color 0.15s ease;
 
 			&:hover {
 				background: var(--color-hover, oklch(0.22 0.02 260));

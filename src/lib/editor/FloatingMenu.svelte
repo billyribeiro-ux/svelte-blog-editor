@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import { browser } from '$app/environment';
 	import type { Editor } from '@tiptap/core';
 	import { FloatingMenuPlugin } from '@tiptap/extension-floating-menu';
 	import Icon from '$lib/components/ui/Icon.svelte';
@@ -83,8 +84,8 @@
 					placement: 'bottom-start'
 				},
 				shouldShow: ({ state }) => {
-					const { $from } = state.selection;
-					const currentLineText = $from.nodeBefore?.textContent ?? '';
+					const selFrom = state.selection.$from;
+					const currentLineText = selFrom.nodeBefore?.textContent ?? '';
 
 					if (currentLineText.startsWith('/')) {
 						query = currentLineText.slice(1);
@@ -93,9 +94,7 @@
 						return true;
 					}
 
-					const isEmptyLine =
-						$from.parent.isTextblock &&
-						$from.parent.content.size === 0;
+					const isEmptyLine = selFrom.parent.isTextblock && selFrom.parent.content.size === 0;
 
 					if (isEmptyLine) {
 						query = '';
@@ -110,14 +109,14 @@
 			})
 		);
 
-		document.addEventListener('keydown', handleKeydown);
+		if (browser) document.addEventListener('keydown', handleKeydown);
 	});
 
 	onDestroy(() => {
 		if (editor) {
 			editor.unregisterPlugin(pluginKey);
 		}
-		document.removeEventListener('keydown', handleKeydown);
+		if (browser) document.removeEventListener('keydown', handleKeydown);
 	});
 </script>
 
@@ -137,7 +136,9 @@
 						role="option"
 						aria-selected={globalIdx === selectedIndex}
 						onclick={() => executeCommand(item)}
-						onmouseenter={() => { selectedIndex = globalIdx; }}
+						onmouseenter={() => {
+							selectedIndex = globalIdx;
+						}}
 					>
 						<span class="slash-item-icon">
 							<Icon name={item.icon} size={18} />

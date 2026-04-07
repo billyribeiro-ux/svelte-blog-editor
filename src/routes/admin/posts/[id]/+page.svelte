@@ -15,23 +15,42 @@
 		};
 	}>();
 
-	/* ─── State ─────────────────────────────────────────────────── */
+	/* ─── Snapshot initial data to avoid Svelte reactive-capture warnings ── */
+	const initial = $derived(data.post);
 
-	let title = $state(data.post.title);
-	let slug = $state(data.post.slug);
+	/* ─── State (populated by $effect from derived data) ──────── */
+
+	let title = $state('');
+	let slug = $state('');
 	let slugManuallyEdited = $state(true);
-	let status = $state<PostStatus>(data.post.status);
-	let publishedAt = $state(data.post.publishedAt ?? '');
-	let excerpt = $state(data.post.excerpt);
-	let featuredImage = $state(data.post.featuredImage);
-	let selectedCategories = $state<string[]>([...data.post.categories]);
-	let selectedTags = $state<string[]>([...data.post.tags]);
+	let status = $state<PostStatus>('draft');
+	let publishedAt = $state('');
+	let excerpt = $state('');
+	let featuredImage = $state('');
+	let selectedCategories = $state<string[]>([]);
+	let selectedTags = $state<string[]>([]);
 	let tagInput = $state('');
 
 	/* SEO */
-	let seoMetaTitle = $state(data.post.seo.metaTitle);
-	let seoMetaDescription = $state(data.post.seo.metaDescription);
-	let seoFocusKeyword = $state(data.post.seo.focusKeyword);
+	let seoMetaTitle = $state('');
+	let seoMetaDescription = $state('');
+	let seoFocusKeyword = $state('');
+
+	/* Sync local state from server data (reactive to navigation) */
+	$effect(() => {
+		title = initial.title;
+		slug = initial.slug;
+		status = initial.status;
+		publishedAt = initial.publishedAt ?? '';
+		excerpt = initial.excerpt;
+		featuredImage = initial.featuredImage;
+		selectedCategories = [...initial.categories];
+		selectedTags = [...initial.tags];
+		seoMetaTitle = initial.seo.metaTitle;
+		seoMetaDescription = initial.seo.metaDescription;
+		seoFocusKeyword = initial.seo.focusKeyword;
+		hasUnsavedChanges = false;
+	});
 
 	/* Editor */
 	let editor = $state<Editor | null>(null);
@@ -86,9 +105,7 @@
 			const name = tagInput.trim();
 			if (!name) return;
 
-			const existing = data.tags.find(
-				(t) => t.name.toLowerCase() === name.toLowerCase()
-			);
+			const existing = data.tags.find((t) => t.name.toLowerCase() === name.toLowerCase());
 			const tagId = existing?.id ?? name;
 
 			if (!selectedTags.includes(tagId)) {
@@ -211,7 +228,12 @@
 			<button class="btn btn-secondary" type="button" disabled={saving} onclick={() => save()}>
 				{saving ? 'Saving...' : 'Save Draft'}
 			</button>
-			<button class="btn btn-primary" type="button" disabled={saving} onclick={() => save('published')}>
+			<button
+				class="btn btn-primary"
+				type="button"
+				disabled={saving}
+				onclick={() => save('published')}
+			>
 				{status === 'published' ? 'Update' : 'Publish'}
 			</button>
 		</div>
@@ -260,7 +282,14 @@
 				<div class="panel-body">
 					<div class="field">
 						<label class="field-label" for="post-status">Status</label>
-						<select id="post-status" class="field-select" bind:value={status} onchange={() => { hasUnsavedChanges = true; }}>
+						<select
+							id="post-status"
+							class="field-select"
+							bind:value={status}
+							onchange={() => {
+								hasUnsavedChanges = true;
+							}}
+						>
 							<option value="draft">Draft</option>
 							<option value="published">Published</option>
 							<option value="scheduled">Scheduled</option>
@@ -274,7 +303,9 @@
 								class="field-input"
 								type="datetime-local"
 								bind:value={publishedAt}
-								onchange={() => { hasUnsavedChanges = true; }}
+								onchange={() => {
+									hasUnsavedChanges = true;
+								}}
 							/>
 						</div>
 					{/if}
@@ -324,8 +355,8 @@
 										class="tag-remove"
 										type="button"
 										aria-label="Remove tag"
-										onclick={() => removeTag(tagId)}
-									>×</button>
+										onclick={() => removeTag(tagId)}>×</button
+									>
 								</span>
 							{/each}
 						</div>
@@ -342,11 +373,24 @@
 				<div class="panel-body">
 					{#if featuredImage}
 						<img src={featuredImage} alt="Featured" class="featured-preview" />
-						<button class="btn-remove-featured" type="button" onclick={() => { featuredImage = ''; hasUnsavedChanges = true; }}>
+						<button
+							class="btn-remove-featured"
+							type="button"
+							onclick={() => {
+								featuredImage = '';
+								hasUnsavedChanges = true;
+							}}
+						>
 							Remove
 						</button>
 					{:else}
-						<button class="btn-set-featured" type="button" onclick={() => { featuredImageModalOpen = true; }}>
+						<button
+							class="btn-set-featured"
+							type="button"
+							onclick={() => {
+								featuredImageModalOpen = true;
+							}}
+						>
 							<Icon name="ph:plus" size={16} />
 							Set Featured Image
 						</button>
@@ -366,7 +410,9 @@
 						rows={3}
 						placeholder="Write a short excerpt..."
 						bind:value={excerpt}
-						oninput={() => { hasUnsavedChanges = true; }}
+						oninput={() => {
+							hasUnsavedChanges = true;
+						}}
 					></textarea>
 				</div>
 			</section>
@@ -391,7 +437,9 @@
 							type="text"
 							placeholder="SEO title"
 							bind:value={seoMetaTitle}
-							oninput={() => { hasUnsavedChanges = true; }}
+							oninput={() => {
+								hasUnsavedChanges = true;
+							}}
 						/>
 					</div>
 					<div class="field">
@@ -407,7 +455,9 @@
 							rows={3}
 							placeholder="SEO description"
 							bind:value={seoMetaDescription}
-							oninput={() => { hasUnsavedChanges = true; }}
+							oninput={() => {
+								hasUnsavedChanges = true;
+							}}
 						></textarea>
 					</div>
 					<div class="field">
@@ -418,7 +468,9 @@
 							type="text"
 							placeholder="Primary keyword"
 							bind:value={seoFocusKeyword}
-							oninput={() => { hasUnsavedChanges = true; }}
+							oninput={() => {
+								hasUnsavedChanges = true;
+							}}
 						/>
 					</div>
 				</div>
@@ -746,7 +798,9 @@
 			cursor: pointer;
 			inline-size: 100%;
 			justify-content: center;
-			transition: border-color 0.12s ease, color 0.12s ease;
+			transition:
+				border-color 0.12s ease,
+				color 0.12s ease;
 
 			&:hover {
 				border-color: var(--color-accent, oklch(0.7 0.15 250));

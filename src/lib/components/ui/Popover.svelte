@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import { browser } from '$app/environment';
 	import type { Snippet } from 'svelte';
 
 	let {
@@ -35,11 +36,13 @@
 	}
 
 	onMount(() => {
+		if (!browser) return;
 		document.addEventListener('mousedown', handleClickOutside);
 		document.addEventListener('keydown', handleKeydown);
 	});
 
 	onDestroy(() => {
+		if (!browser) return;
 		document.removeEventListener('mousedown', handleClickOutside);
 		document.removeEventListener('keydown', handleKeydown);
 	});
