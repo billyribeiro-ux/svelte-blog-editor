@@ -3,6 +3,8 @@
 	import type { Editor } from '@tiptap/core';
 	import { BubbleMenuPlugin } from '@tiptap/extension-bubble-menu';
 	import Icon from '$lib/components/ui/Icon.svelte';
+	import Popover from '$lib/components/ui/Popover.svelte';
+	import ColorPicker from '$lib/components/ui/ColorPicker.svelte';
 	import type { BubbleMenuContext } from './types.js';
 
 	let {
@@ -91,12 +93,16 @@
 
 	/* ─── Text color ──────────────────────────────────────────────── */
 
-	function setTextColor(): void {
+	let colorPopoverOpen = $state(false);
+
+	function applyTextColor(color: string): void {
 		if (!editor) return;
-		const color = prompt('Enter color (e.g. #ff0000, oklch(0.7 0.15 250)):');
 		if (color) {
 			editor.chain().focus().setColor(color).run();
+		} else {
+			editor.chain().focus().unsetColor().run();
 		}
+		colorPopoverOpen = false;
 	}
 
 	/* ─── Table actions ─────────────────────────────────────────── */
@@ -203,7 +209,18 @@
 		{@render bubbleBtn('ph:highlighter', 'Highlight', editor?.isActive('highlight') ?? false, () =>
 			cmd((e) => e.chain().focus().toggleHighlight().run())
 		)}
-		{@render bubbleBtn('ph:palette', 'Text Color', false, setTextColor)}
+		<Popover bind:open={colorPopoverOpen} align="end">
+			{#snippet trigger()}
+				<span class="bubble-btn" aria-label="Text Color">
+					<Icon name="ph:palette" size={16} />
+				</span>
+			{/snippet}
+			{#snippet content()}
+				<div class="bubble-color-picker">
+					<ColorPicker value="" onchange={applyTextColor} />
+				</div>
+			{/snippet}
+		</Popover>
 	{:else if context === 'link'}
 		<div class="bubble-link-edit">
 			<input
@@ -366,6 +383,10 @@
 			flex-direction: column;
 			gap: 4px;
 			padding-block: 2px;
+		}
+
+		.bubble-color-picker {
+			min-inline-size: 200px;
 		}
 
 		.bubble-image-input {

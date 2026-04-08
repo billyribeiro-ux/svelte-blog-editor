@@ -8,6 +8,7 @@
 	let slug = $state('');
 	let slugManuallyEdited = $state(false);
 	let saving = $state(false);
+	let saveError = $state('');
 	let editor = $state<Editor | null>(null);
 
 	function handleTitleInput(): void {
@@ -24,6 +25,7 @@
 	async function savePost(status: 'draft' | 'published' = 'draft'): Promise<void> {
 		if (saving || !title.trim()) return;
 		saving = true;
+		saveError = '';
 
 		const content: JSONContent = editor?.getJSON() ?? { type: 'doc', content: [] };
 
@@ -52,7 +54,12 @@
 			if (response.ok) {
 				const post = await response.json();
 				goto(`/admin/posts/${post.id}`);
+			} else {
+				const body = await response.json().catch(() => null);
+				saveError = (body as { message?: string })?.message ?? `Save failed (${response.status})`;
 			}
+		} catch (err) {
+			saveError = err instanceof Error ? err.message : 'Network error — could not save';
 		} finally {
 			saving = false;
 		}
@@ -89,6 +96,10 @@
 			</button>
 		</div>
 	</header>
+
+	{#if saveError}
+		<div class="save-error" role="alert">{saveError}</div>
+	{/if}
 
 	<div class="title-section">
 		<input
@@ -176,6 +187,17 @@
 			color: var(--color-text-muted, oklch(0.5 0.02 260));
 			font-size: 0.85rem;
 			font-family: var(--font-mono, monospace);
+		}
+
+		.save-error {
+			padding-block: 10px;
+			padding-inline: 14px;
+			background: oklch(0.35 0.15 25 / 0.15);
+			border: 1px solid oklch(0.55 0.2 25 / 0.4);
+			border-radius: 6px;
+			color: oklch(0.75 0.15 25);
+			font-size: 0.85rem;
+			margin-block-end: 12px;
 		}
 
 		.slug-input {

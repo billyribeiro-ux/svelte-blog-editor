@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import type { Snippet } from 'svelte';
 	import Icon from './Icon.svelte';
@@ -71,14 +70,13 @@
 		}
 	});
 
-	onMount(() => {
-		if (!browser) return;
+	/* Only listen for keydown when modal is open to avoid leaking listeners */
+	$effect(() => {
+		if (!browser || !open) return;
 		document.addEventListener('keydown', handleKeydown);
-	});
-
-	onDestroy(() => {
-		if (!browser) return;
-		document.removeEventListener('keydown', handleKeydown);
+		return () => {
+			document.removeEventListener('keydown', handleKeydown);
+		};
 	});
 </script>
 

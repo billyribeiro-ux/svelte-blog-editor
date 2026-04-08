@@ -172,18 +172,29 @@
 
 	function handleEditorUpdate(): void {
 		hasUnsavedChanges = true;
+		scheduleAutoSave();
 	}
 
 	function handleEditorSave(): void {
 		save();
 	}
 
-	/* ─── Auto-save every 30s ───────────────────────────────────── */
+	/* ─── Auto-save: debounce 5s after last edit + fallback 30s interval ── */
 
-	let autoSaveTimer: ReturnType<typeof setInterval>;
+	let autoSaveDebounce: ReturnType<typeof setTimeout>;
+	let autoSaveInterval: ReturnType<typeof setInterval>;
+
+	function scheduleAutoSave(): void {
+		clearTimeout(autoSaveDebounce);
+		autoSaveDebounce = setTimeout(() => {
+			if (hasUnsavedChanges && !saving) {
+				save();
+			}
+		}, 5_000);
+	}
 
 	onMount(() => {
-		autoSaveTimer = setInterval(() => {
+		autoSaveInterval = setInterval(() => {
 			if (hasUnsavedChanges && !saving) {
 				save();
 			}
@@ -191,7 +202,8 @@
 	});
 
 	onDestroy(() => {
-		clearInterval(autoSaveTimer);
+		clearTimeout(autoSaveDebounce);
+		clearInterval(autoSaveInterval);
 	});
 
 	/* ─── Unsaved changes warning ───────────────────────────────── */

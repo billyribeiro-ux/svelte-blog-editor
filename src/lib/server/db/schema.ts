@@ -75,8 +75,18 @@ CREATE TABLE IF NOT EXISTS media (
 CREATE INDEX IF NOT EXISTS idx_posts_slug ON posts(slug);
 CREATE INDEX IF NOT EXISTS idx_posts_status ON posts(status);
 CREATE INDEX IF NOT EXISTS idx_posts_published_at ON posts(published_at);
+CREATE INDEX IF NOT EXISTS idx_posts_updated_at ON posts(updated_at);
 CREATE INDEX IF NOT EXISTS idx_categories_slug ON categories(slug);
 CREATE INDEX IF NOT EXISTS idx_tags_slug ON tags(slug);
+CREATE INDEX IF NOT EXISTS idx_media_uploaded_at ON media(uploaded_at);
+
+CREATE TRIGGER IF NOT EXISTS trg_posts_updated_at
+	AFTER UPDATE ON posts
+	FOR EACH ROW
+	WHEN OLD.updated_at = NEW.updated_at
+BEGIN
+	UPDATE posts SET updated_at = datetime('now') WHERE id = NEW.id;
+END;
 `;
 
 /**

@@ -58,7 +58,12 @@ export const POST: RequestHandler = async ({ request }) => {
 
 	const buffer = Buffer.from(await file.arrayBuffer());
 	const originalName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-	const baseName = originalName.replace(/\.[^.]+$/, '');
+	/* Strip extension, collapse dots/double-dots to prevent path traversal */
+	const baseName =
+		originalName
+			.replace(/\.[^.]+$/, '')
+			.replace(/\.+/g, '_')
+			.replace(/^_+|_+$/g, '') || 'upload';
 	const timestamp = Date.now();
 	const now = new Date();
 	const year = now.getFullYear().toString();

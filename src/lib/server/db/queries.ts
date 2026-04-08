@@ -137,28 +137,31 @@ export function createPost(db: Database.Database, payload: PostPayload): PostDat
 	const id = crypto.randomUUID();
 	const now = new Date().toISOString();
 
-	db.prepare(
-		`INSERT INTO posts (id, title, slug, content, excerpt, featured_image_url, status, author_id, published_at, created_at, updated_at, seo_meta_title, seo_meta_description, seo_focus_keyword)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	).run(
-		id,
-		payload.title,
-		payload.slug,
-		JSON.stringify(payload.content),
-		payload.excerpt,
-		payload.featuredImage,
-		payload.status,
-		'admin',
-		payload.publishedAt,
-		now,
-		now,
-		payload.seo.metaTitle,
-		payload.seo.metaDescription,
-		payload.seo.focusKeyword
-	);
+	const tx = db.transaction(() => {
+		db.prepare(
+			`INSERT INTO posts (id, title, slug, content, excerpt, featured_image_url, status, author_id, published_at, created_at, updated_at, seo_meta_title, seo_meta_description, seo_focus_keyword)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		).run(
+			id,
+			payload.title,
+			payload.slug,
+			JSON.stringify(payload.content),
+			payload.excerpt,
+			payload.featuredImage,
+			payload.status,
+			'admin',
+			payload.publishedAt,
+			now,
+			now,
+			payload.seo.metaTitle,
+			payload.seo.metaDescription,
+			payload.seo.focusKeyword
+		);
 
-	syncPostCategories(db, id, payload.categories);
-	syncPostTags(db, id, payload.tags);
+		syncPostCategories(db, id, payload.categories);
+		syncPostTags(db, id, payload.tags);
+	});
+	tx();
 
 	return getPost(db, id)!;
 }
@@ -171,34 +174,39 @@ export function updatePost(
 ): PostData | null {
 	const now = new Date().toISOString();
 
-	const result = db
-		.prepare(
-			`UPDATE posts SET
-			title = ?, slug = ?, content = ?, excerpt = ?, featured_image_url = ?,
-			status = ?, published_at = ?, updated_at = ?,
-			seo_meta_title = ?, seo_meta_description = ?, seo_focus_keyword = ?
-		 WHERE id = ?`
-		)
-		.run(
-			payload.title,
-			payload.slug,
-			JSON.stringify(payload.content),
-			payload.excerpt,
-			payload.featuredImage,
-			payload.status,
-			payload.publishedAt,
-			now,
-			payload.seo.metaTitle,
-			payload.seo.metaDescription,
-			payload.seo.focusKeyword,
-			id
-		);
+	let changes = 0;
+	const tx = db.transaction(() => {
+		const result = db
+			.prepare(
+				`UPDATE posts SET
+				title = ?, slug = ?, content = ?, excerpt = ?, featured_image_url = ?,
+				status = ?, published_at = ?, updated_at = ?,
+				seo_meta_title = ?, seo_meta_description = ?, seo_focus_keyword = ?
+			 WHERE id = ?`
+			)
+			.run(
+				payload.title,
+				payload.slug,
+				JSON.stringify(payload.content),
+				payload.excerpt,
+				payload.featuredImage,
+				payload.status,
+				payload.publishedAt,
+				now,
+				payload.seo.metaTitle,
+				payload.seo.metaDescription,
+				payload.seo.focusKeyword,
+				id
+			);
+		changes = result.changes;
+		if (changes === 0) return;
 
-	if (result.changes === 0) return null;
+		syncPostCategories(db, id, payload.categories);
+		syncPostTags(db, id, payload.tags);
+	});
+	tx();
 
-	syncPostCategories(db, id, payload.categories);
-	syncPostTags(db, id, payload.tags);
-
+	if (changes === 0) return null;
 	return getPost(db, id);
 }
 

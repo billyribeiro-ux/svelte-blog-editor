@@ -14,6 +14,10 @@
 
 	let colorPopoverOpen = $state(false);
 	let highlightPopoverOpen = $state(false);
+	let youtubePopoverOpen = $state(false);
+	let videoPopoverOpen = $state(false);
+	let youtubeUrl = $state('');
+	let videoUrl = $state('');
 
 	/* ─── Active state derivations ──────────────────────────────── */
 
@@ -42,25 +46,27 @@
 		if (editor) fn(editor);
 	}
 
-	function insertYoutube(): void {
-		const url = prompt('Enter YouTube URL:');
-		if (url && editor) {
-			editor.chain().focus().setYoutubeVideo({ src: url }).run();
+	function confirmYoutube(): void {
+		if (youtubeUrl.trim() && editor) {
+			editor.chain().focus().setYoutubeVideo({ src: youtubeUrl.trim() }).run();
 		}
+		youtubeUrl = '';
+		youtubePopoverOpen = false;
 	}
 
-	function insertVideo(): void {
-		const url = prompt('Enter video URL:');
-		if (url && editor) {
+	function confirmVideo(): void {
+		if (videoUrl.trim() && editor) {
 			editor
 				.chain()
 				.focus()
 				.insertContent({
 					type: 'customVideo',
-					attrs: { src: url, title: '', alt: '', controls: true }
+					attrs: { src: videoUrl.trim(), title: '', alt: '', controls: true }
 				})
 				.run();
 		}
+		videoUrl = '';
+		videoPopoverOpen = false;
 	}
 
 	function insertTable(): void {
@@ -225,8 +231,63 @@
 	<!-- Insert -->
 	<div class="toolbar-group">
 		{@render toolbarButton('ph:image', 'Insert Image', false, () => onInsertImage?.())}
-		{@render toolbarButton('ph:video-camera', 'Insert Video', false, insertVideo)}
-		{@render toolbarButton('ph:youtube-logo', 'Insert YouTube Video', false, insertYoutube)}
+		<Popover bind:open={videoPopoverOpen} align="start">
+			{#snippet trigger()}
+				<span class="toolbar-btn" aria-label="Insert Video">
+					<Icon name="ph:video-camera" size={18} />
+				</span>
+			{/snippet}
+			{#snippet content()}
+				<div class="url-popover-content">
+					<p class="color-popover-label">Video URL</p>
+					<input
+						class="url-popover-input"
+						type="url"
+						placeholder="https://example.com/video.mp4"
+						bind:value={videoUrl}
+						onkeydown={(e) => {
+							if (e.key === 'Enter') {
+								e.preventDefault();
+								confirmVideo();
+							}
+						}}
+					/>
+					<button class="url-popover-btn" type="button" onclick={confirmVideo}>
+						<Icon name="ph:check" size={14} />
+						Insert
+					</button>
+				</div>
+			{/snippet}
+		</Popover>
+
+		<Popover bind:open={youtubePopoverOpen} align="start">
+			{#snippet trigger()}
+				<span class="toolbar-btn" aria-label="Insert YouTube Video">
+					<Icon name="ph:youtube-logo" size={18} />
+				</span>
+			{/snippet}
+			{#snippet content()}
+				<div class="url-popover-content">
+					<p class="color-popover-label">YouTube URL</p>
+					<input
+						class="url-popover-input"
+						type="url"
+						placeholder="https://youtube.com/watch?v=..."
+						bind:value={youtubeUrl}
+						onkeydown={(e) => {
+							if (e.key === 'Enter') {
+								e.preventDefault();
+								confirmYoutube();
+							}
+						}}
+					/>
+					<button class="url-popover-btn" type="button" onclick={confirmYoutube}>
+						<Icon name="ph:check" size={14} />
+						Insert
+					</button>
+				</div>
+			{/snippet}
+		</Popover>
 		{@render toolbarButton('ph:table', 'Insert Table', false, insertTable)}
 		{@render toolbarButton('ph:minus', 'Horizontal Rule', false, () =>
 			cmd((e) => e.chain().focus().setHorizontalRule().run())
@@ -339,6 +400,53 @@
 			margin-block-end: 8px;
 			text-transform: uppercase;
 			letter-spacing: 0.05em;
+		}
+
+		.url-popover-content {
+			min-inline-size: 260px;
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+		}
+
+		.url-popover-input {
+			padding-block: 6px;
+			padding-inline: 10px;
+			border: 1px solid var(--color-border, oklch(0.3 0.02 260));
+			border-radius: 6px;
+			background: var(--color-surface, oklch(0.13 0.01 260));
+			color: var(--color-text, oklch(0.95 0 0));
+			font-size: 0.8rem;
+
+			&:focus {
+				outline: 2px solid var(--color-accent, oklch(0.7 0.15 250));
+				outline-offset: -1px;
+			}
+
+			&::placeholder {
+				color: var(--color-text-muted, oklch(0.45 0.02 260));
+			}
+		}
+
+		.url-popover-btn {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			gap: 4px;
+			padding-block: 6px;
+			padding-inline: 12px;
+			border: none;
+			border-radius: 6px;
+			background: var(--color-accent, oklch(0.7 0.15 250));
+			color: oklch(0.1 0 0);
+			font-size: 0.8rem;
+			font-weight: 600;
+			cursor: pointer;
+			transition: background 0.1s ease;
+
+			&:hover {
+				background: oklch(0.65 0.17 250);
+			}
 		}
 	}
 </style>
