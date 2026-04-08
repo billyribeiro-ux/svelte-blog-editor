@@ -86,10 +86,7 @@
 								<span class="post-slug">/{post.slug}</span>
 							</td>
 							<td>
-								<span
-									class="status-badge"
-									style:color={statusColors[post.status]}
-								>
+								<span class="status-badge" style:color={statusColors[post.status]}>
 									{post.status}
 								</span>
 							</td>
@@ -109,7 +106,9 @@
 					<a
 						class="pagination-link"
 						class:active={pageNum === data.page}
-						href="/admin/posts?page={pageNum}{data.currentStatus ? `&status=${data.currentStatus}` : ''}"
+						href="/admin/posts?page={pageNum}{data.currentStatus
+							? `&status=${data.currentStatus}`
+							: ''}"
 					>
 						{pageNum}
 					</a>
@@ -198,7 +197,9 @@
 			text-decoration: none;
 			border-block-end: 2px solid transparent;
 			margin-block-end: -1px;
-			transition: color 0.12s ease, border-color 0.12s ease;
+			transition:
+				color 0.12s ease,
+				border-color 0.12s ease;
 
 			&:hover {
 				color: var(--color-text, oklch(0.95 0 0));
@@ -298,7 +299,9 @@
 			font-size: 0.85rem;
 			color: var(--color-text-muted, oklch(0.6 0.02 260));
 			text-decoration: none;
-			transition: background 0.1s ease, color 0.1s ease;
+			transition:
+				background 0.1s ease,
+				color 0.1s ease;
 
 			&:hover {
 				background: var(--color-hover, oklch(0.2 0.01 260));

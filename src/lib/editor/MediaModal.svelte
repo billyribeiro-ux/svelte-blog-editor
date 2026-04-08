@@ -183,10 +183,18 @@
 			if (!result) return;
 
 			switch (state.size) {
-				case 'thumbnail': src = result.thumbnailUrl; break;
-				case 'medium': src = result.mediumUrl; break;
-				case 'large': src = result.largeUrl; break;
-				case 'full': src = result.url; break;
+				case 'thumbnail':
+					src = result.thumbnailUrl;
+					break;
+				case 'medium':
+					src = result.mediumUrl;
+					break;
+				case 'large':
+					src = result.largeUrl;
+					break;
+				case 'full':
+					src = result.url;
+					break;
 			}
 			width = result.width;
 			height = result.height;
@@ -196,19 +204,23 @@
 
 		if (!src) return;
 
-		editor.chain().focus().setImage({
-			src,
-			alt: state.alt,
-			title: state.title || undefined,
-			caption: state.caption || undefined,
-			description: state.description || undefined,
-			width,
-			height,
-			alignment: state.alignment,
-			linkUrl: state.linkTo === 'custom' ? state.linkUrl :
-			         state.linkTo === 'media' ? src : undefined,
-			linkTarget: state.linkTo !== 'none' ? '_blank' : undefined
-		}).run();
+		editor
+			.chain()
+			.focus()
+			.setImage({
+				src,
+				alt: state.alt,
+				title: state.title || undefined,
+				caption: state.caption || undefined,
+				description: state.description || undefined,
+				width,
+				height,
+				alignment: state.alignment,
+				linkUrl:
+					state.linkTo === 'custom' ? state.linkUrl : state.linkTo === 'media' ? src : undefined,
+				linkTarget: state.linkTo !== 'none' ? '_blank' : undefined
+			})
+			.run();
 
 		open = false;
 		resetState();
@@ -290,11 +302,15 @@
 					ondragover={handleDragOver}
 					ondragleave={handleDragLeave}
 					onclick={() => fileInputEl?.click()}
-					onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileInputEl?.click(); }}
+					onkeydown={(e) => {
+						if (e.key === 'Enter' || e.key === ' ') fileInputEl?.click();
+					}}
 				>
 					<Icon name="ph:cloud-arrow-up" size={48} />
 					<p class="dropzone-text">Drop image here or click to select</p>
-					<p class="dropzone-hint">JPEG, PNG, WebP, AVIF, GIF — Max {(maxFileSize / (1024 * 1024)).toFixed(0)}MB</p>
+					<p class="dropzone-hint">
+						JPEG, PNG, WebP, AVIF, GIF — Max {(maxFileSize / (1024 * 1024)).toFixed(0)}MB
+					</p>
 				</div>
 				<input
 					bind:this={fileInputEl}
@@ -415,7 +431,9 @@
 									type="button"
 									aria-label={opt.label}
 									aria-pressed={state.alignment === opt.value}
-									onclick={() => { state.alignment = opt.value; }}
+									onclick={() => {
+										state.alignment = opt.value;
+									}}
 								>
 									<Icon name={opt.icon} size={16} />
 								</button>
@@ -450,15 +468,17 @@
 	{/snippet}
 
 	{#snippet footer()}
-		<button class="btn btn-secondary" type="button" onclick={() => { open = false; resetState(); }}>
+		<button
+			class="btn btn-secondary"
+			type="button"
+			onclick={() => {
+				open = false;
+				resetState();
+			}}
+		>
 			Cancel
 		</button>
-		<button
-			class="btn btn-primary"
-			type="button"
-			disabled={!canInsert}
-			onclick={handleInsert}
-		>
+		<button class="btn btn-primary" type="button" disabled={!canInsert} onclick={handleInsert}>
 			<Icon name="ph:check" size={16} />
 			Insert Image
 		</button>
@@ -490,7 +510,9 @@
 			cursor: pointer;
 			border-block-end: 2px solid transparent;
 			margin-block-end: -1px;
-			transition: color 0.12s ease, border-color 0.12s ease;
+			transition:
+				color 0.12s ease,
+				border-color 0.12s ease;
 
 			&:hover {
 				color: var(--color-text, oklch(0.95 0 0));
@@ -536,7 +558,9 @@
 			border: 2px dashed var(--color-border, oklch(0.35 0.02 260));
 			border-radius: 10px;
 			cursor: pointer;
-			transition: border-color 0.15s ease, background 0.15s ease;
+			transition:
+				border-color 0.15s ease,
+				background 0.15s ease;
 			color: var(--color-text-muted, oklch(0.55 0.02 260));
 
 			&:hover,
@@ -737,7 +761,10 @@
 			background: transparent;
 			color: var(--color-text-muted, oklch(0.6 0.02 260));
 			cursor: pointer;
-			transition: background 0.1s ease, color 0.1s ease, border-color 0.1s ease;
+			transition:
+				background 0.1s ease,
+				color 0.1s ease,
+				border-color 0.1s ease;
 
 			&:hover {
 				background: var(--color-hover, oklch(0.22 0.02 260));
@@ -769,7 +796,9 @@
 			font-size: 0.875rem;
 			font-weight: 500;
 			cursor: pointer;
-			transition: background 0.12s ease, opacity 0.12s ease;
+			transition:
+				background 0.12s ease,
+				opacity 0.12s ease;
 
 			&:disabled {
 				opacity: 0.5;

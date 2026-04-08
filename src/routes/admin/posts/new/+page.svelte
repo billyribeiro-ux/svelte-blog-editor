@@ -79,10 +79,20 @@
 	<header class="page-header">
 		<a href="/admin/posts" class="back-link">← Back to Posts</a>
 		<div class="header-actions">
-			<button class="btn btn-secondary" type="button" disabled={saving} onclick={() => savePost('draft')}>
+			<button
+				class="btn btn-secondary"
+				type="button"
+				disabled={saving}
+				onclick={() => savePost('draft')}
+			>
 				Save Draft
 			</button>
-			<button class="btn btn-primary" type="button" disabled={saving} onclick={() => savePost('published')}>
+			<button
+				class="btn btn-primary"
+				type="button"
+				disabled={saving}
+				onclick={() => savePost('published')}
+			>
 				Publish
 			</button>
 		</div>
@@ -108,12 +118,7 @@
 		</div>
 	</div>
 
-	<BlogEditor
-		content="<p></p>"
-		editable={true}
-		onSave={handleSave}
-		bind:editor
-	/>
+	<BlogEditor content="<p></p>" editable={true} onSave={handleSave} bind:editor />
 </div>
 
 <style>

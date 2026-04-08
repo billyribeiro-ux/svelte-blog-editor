@@ -434,18 +434,18 @@
 
 	@media print {
 		:global(.ProseMirror) {
-			color: black;
+			color: oklch(0 0 0);
 			font-size: 12pt;
 			line-height: 1.5;
 		}
 
 		:global(.ProseMirror a) {
-			color: black;
+			color: oklch(0.1 0 0);
 			text-decoration: underline;
 		}
 
 		:global(.ProseMirror pre) {
-			border: 1px solid #ccc;
+			border: 1px solid oklch(0.8 0.01 260);
 			page-break-inside: avoid;
 		}
 
