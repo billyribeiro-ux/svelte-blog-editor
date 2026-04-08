@@ -4,7 +4,8 @@ import { db } from '$lib/server/db/client.js';
 import { insertMedia } from '$lib/server/db/queries.js';
 import sharp from 'sharp';
 import { env } from '$env/dynamic/private';
-import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { writeFile, mkdir } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ACCEPTED_TYPES = new Set([
@@ -64,12 +65,12 @@ export const POST: RequestHandler = async ({ request }) => {
 	const month = (now.getMonth() + 1).toString().padStart(2, '0');
 
 	try {
-		const metadata = await sharp(buffer).metadata();
+		/* Single Sharp pass: strip EXIF via rotate() and extract metadata */
+		const pipeline = sharp(buffer).rotate();
+		const metadata = await pipeline.metadata();
 		const naturalWidth = metadata.width ?? 0;
 		const naturalHeight = metadata.height ?? 0;
-
-		/* Strip EXIF for privacy */
-		const cleanBuffer = await sharp(buffer).rotate().toBuffer();
+		const cleanBuffer = await pipeline.toBuffer();
 
 		const storageBackend = env.STORAGE_BACKEND || 'local';
 		const urls: Record<string, string> = {};
@@ -114,19 +115,19 @@ export const POST: RequestHandler = async ({ request }) => {
 		} else {
 			const uploadDir = join('static', 'uploads', year, month);
 			if (!existsSync(uploadDir)) {
-				mkdirSync(uploadDir, { recursive: true });
+				await mkdir(uploadDir, { recursive: true });
 			}
 
 			/* Full size WebP */
 			const fullWebp = await sharp(cleanBuffer).webp({ quality: 85 }).toBuffer();
 			const fullWebpFilename = `${baseName}-${timestamp}-full.webp`;
-			writeFileSync(join(uploadDir, fullWebpFilename), fullWebp);
+			await writeFile(join(uploadDir, fullWebpFilename), fullWebp);
 			urls.full = `/uploads/${year}/${month}/${fullWebpFilename}`;
 
 			/* Full size AVIF */
 			const fullAvif = await sharp(cleanBuffer).avif({ quality: 65 }).toBuffer();
 			const fullAvifFilename = `${baseName}-${timestamp}-full.avif`;
-			writeFileSync(join(uploadDir, fullAvifFilename), fullAvif);
+			await writeFile(join(uploadDir, fullAvifFilename), fullAvif);
 			urls.fullAvif = `/uploads/${year}/${month}/${fullAvifFilename}`;
 
 			/* Size variants in WebP + AVIF */
@@ -136,7 +137,7 @@ export const POST: RequestHandler = async ({ request }) => {
 					.webp({ quality: 82 })
 					.toBuffer();
 				const webpFilename = `${baseName}-${timestamp}-${variant.suffix}.webp`;
-				writeFileSync(join(uploadDir, webpFilename), resizedWebp);
+				await writeFile(join(uploadDir, webpFilename), resizedWebp);
 				urls[variant.suffix] = `/uploads/${year}/${month}/${webpFilename}`;
 
 				const resizedAvif = await sharp(cleanBuffer)
@@ -144,7 +145,7 @@ export const POST: RequestHandler = async ({ request }) => {
 					.avif({ quality: 60 })
 					.toBuffer();
 				const avifFilename = `${baseName}-${timestamp}-${variant.suffix}.avif`;
-				writeFileSync(join(uploadDir, avifFilename), resizedAvif);
+				await writeFile(join(uploadDir, avifFilename), resizedAvif);
 				urls[`${variant.suffix}Avif`] = `/uploads/${year}/${month}/${avifFilename}`;
 			}
 		}
@@ -188,24 +189,35 @@ export const POST: RequestHandler = async ({ request }) => {
 };
 
 /**
- * Upload a buffer to Cloudflare R2 via S3-compatible API.
+ * Lazily cached S3 client for R2 uploads.
+ * Avoids re-creating the client (and re-importing the SDK) on every variant.
  */
-async function uploadToR2(buffer: Buffer, key: string, contentType: string): Promise<string> {
-	const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
+let _r2Client: InstanceType<typeof import('@aws-sdk/client-s3').S3Client> | null = null;
+let _r2BucketName = '';
+let _r2PublicUrl = '';
+
+async function getR2Client(): Promise<{
+	client: InstanceType<typeof import('@aws-sdk/client-s3').S3Client>;
+	bucketName: string;
+	publicUrl: string;
+}> {
+	if (_r2Client) return { client: _r2Client, bucketName: _r2BucketName, publicUrl: _r2PublicUrl };
+
+	const { S3Client } = await import('@aws-sdk/client-s3');
 
 	const r2AccountId = env.R2_ACCOUNT_ID;
 	const r2AccessKeyId = env.R2_ACCESS_KEY_ID;
 	const r2SecretAccessKey = env.R2_SECRET_ACCESS_KEY;
-	const r2BucketName = env.R2_BUCKET_NAME;
-	const r2PublicUrl = env.R2_PUBLIC_URL;
+	_r2BucketName = env.R2_BUCKET_NAME ?? '';
+	_r2PublicUrl = env.R2_PUBLIC_URL ?? '';
 
-	if (!r2AccountId || !r2AccessKeyId || !r2SecretAccessKey || !r2BucketName) {
+	if (!r2AccountId || !r2AccessKeyId || !r2SecretAccessKey || !_r2BucketName) {
 		throw new Error(
 			'R2 configuration missing. Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME.'
 		);
 	}
 
-	const client = new S3Client({
+	_r2Client = new S3Client({
 		region: 'auto',
 		endpoint: `https://${r2AccountId}.r2.cloudflarestorage.com`,
 		credentials: {
@@ -214,14 +226,24 @@ async function uploadToR2(buffer: Buffer, key: string, contentType: string): Pro
 		}
 	});
 
+	return { client: _r2Client, bucketName: _r2BucketName, publicUrl: _r2PublicUrl };
+}
+
+/**
+ * Upload a buffer to Cloudflare R2 via S3-compatible API.
+ */
+async function uploadToR2(buffer: Buffer, key: string, contentType: string): Promise<string> {
+	const { PutObjectCommand } = await import('@aws-sdk/client-s3');
+	const { client, bucketName, publicUrl } = await getR2Client();
+
 	await client.send(
 		new PutObjectCommand({
-			Bucket: r2BucketName,
+			Bucket: bucketName,
 			Key: key,
 			Body: buffer,
 			ContentType: contentType
 		})
 	);
 
-	return r2PublicUrl ? `${r2PublicUrl}/${key}` : `https://${r2BucketName}.r2.dev/${key}`;
+	return publicUrl ? `${publicUrl}/${key}` : `https://${bucketName}.r2.dev/${key}`;
 }

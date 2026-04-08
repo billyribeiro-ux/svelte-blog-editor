@@ -6,6 +6,7 @@
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import type { Editor, JSONContent } from '@tiptap/core';
 	import type { PostData, PostStatus, CategoryRow, TagRow } from '$lib/editor/types.js';
+	import { generateSlug } from '$lib/utils/slugify.js';
 
 	let { data } = $props<{
 		data: {
@@ -56,6 +57,7 @@
 	let editor = $state<Editor | null>(null);
 	let saving = $state(false);
 	let lastSavedAt = $state('');
+	let saveError = $state('');
 	let hasUnsavedChanges = $state(false);
 	let featuredImageModalOpen = $state(false);
 
@@ -63,15 +65,6 @@
 	let seoMetaDescLength = $derived(seoMetaDescription.length);
 
 	/* ─── Slug generation ───────────────────────────────────────── */
-
-	function generateSlug(text: string): string {
-		return text
-			.toLowerCase()
-			.replace(/[^a-z0-9\s-]/g, '')
-			.replace(/\s+/g, '-')
-			.replace(/-+/g, '-')
-			.replace(/^-|-$/g, '');
-	}
 
 	function handleTitleInput(): void {
 		if (!slugManuallyEdited) {
@@ -135,6 +128,8 @@
 		const currentStatus = newStatus ?? status;
 		const content: JSONContent = editor?.getJSON() ?? data.post.content;
 
+		saveError = '';
+
 		try {
 			const response = await fetch(`/api/editor/posts/${data.post.id}`, {
 				method: 'PUT',
@@ -164,7 +159,12 @@
 				if (newStatus) status = currentStatus;
 				hasUnsavedChanges = false;
 				lastSavedAt = new Date().toLocaleTimeString();
+			} else {
+				const body = await response.json().catch(() => null);
+				saveError = (body as { message?: string })?.message ?? `Save failed (${response.status})`;
 			}
+		} catch (err) {
+			saveError = err instanceof Error ? err.message : 'Network error — could not save';
 		} finally {
 			saving = false;
 		}
@@ -220,7 +220,9 @@
 			{#if lastSavedAt}
 				<span class="save-indicator">Saved at {lastSavedAt}</span>
 			{/if}
-			{#if hasUnsavedChanges}
+			{#if saveError}
+				<span class="error-indicator">{saveError}</span>
+			{:else if hasUnsavedChanges}
 				<span class="unsaved-indicator">Unsaved changes</span>
 			{/if}
 		</div>
@@ -478,7 +480,14 @@
 		</aside>
 	</div>
 
-	<MediaModal bind:open={featuredImageModalOpen} {editor} />
+	<MediaModal
+		bind:open={featuredImageModalOpen}
+		{editor}
+		onInsertUrl={(url) => {
+			featuredImage = url;
+			hasUnsavedChanges = true;
+		}}
+	/>
 </div>
 
 <style>
@@ -531,6 +540,12 @@
 		.unsaved-indicator {
 			font-size: 0.75rem;
 			color: oklch(0.7 0.15 55);
+		}
+
+		.error-indicator {
+			font-size: 0.75rem;
+			color: oklch(0.65 0.2 25);
+			font-weight: 500;
 		}
 
 		.header-actions {

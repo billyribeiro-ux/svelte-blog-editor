@@ -12,6 +12,11 @@ import type {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
+interface PostRowWithRelations extends PostRow {
+	category_ids: string | null;
+	tag_ids: string | null;
+}
+
 function rowToPostData(row: PostRow, db: Database.Database): PostData {
 	const categories = db
 		.prepare(
@@ -51,33 +56,61 @@ function rowToPostData(row: PostRow, db: Database.Database): PostData {
 	};
 }
 
+/** Convert a joined row (with GROUP_CONCAT'd ids) to PostData — avoids N+1 */
+function joinedRowToPostData(row: PostRowWithRelations): PostData {
+	return {
+		id: row.id,
+		title: row.title,
+		slug: row.slug,
+		content: JSON.parse(row.content),
+		excerpt: row.excerpt,
+		featuredImage: row.featured_image_url,
+		categories: row.category_ids ? row.category_ids.split(',') : [],
+		tags: row.tag_ids ? row.tag_ids.split(',') : [],
+		status: row.status,
+		authorId: row.author_id,
+		publishedAt: row.published_at,
+		createdAt: row.created_at,
+		updatedAt: row.updated_at,
+		seo: {
+			metaTitle: row.seo_meta_title,
+			metaDescription: row.seo_meta_description,
+			focusKeyword: row.seo_focus_keyword
+		}
+	};
+}
+
 // ─── Posts ──────────────────────────────────────────────────────────────────
 
-/** List posts with pagination and optional status filter */
+/** List posts with pagination and optional status filter (single query with JOINs) */
 export function listPosts(db: Database.Database, params: PostListParams): PostListResponse {
 	const { page, perPage, status } = params;
 	const offset = (page - 1) * perPage;
 
-	let countSql = 'SELECT COUNT(*) as total FROM posts WHERE status != ?';
-	let querySql = 'SELECT * FROM posts WHERE status != ?';
-	const countParams: unknown[] = ['trashed'];
-	const queryParams: unknown[] = ['trashed'];
+	const whereClause = status ? 'WHERE p.status = ?' : 'WHERE p.status != ?';
+	const filterParam = status ?? 'trashed';
 
-	if (status) {
-		countSql = 'SELECT COUNT(*) as total FROM posts WHERE status = ?';
-		querySql = 'SELECT * FROM posts WHERE status = ?';
-		countParams[0] = status;
-		queryParams[0] = status;
-	}
+	const { total } = db
+		.prepare(`SELECT COUNT(*) as total FROM posts p ${whereClause}`)
+		.get(filterParam) as { total: number };
 
-	querySql += ' ORDER BY updated_at DESC LIMIT ? OFFSET ?';
-	queryParams.push(perPage, offset);
-
-	const { total } = db.prepare(countSql).get(...countParams) as { total: number };
-	const rows = db.prepare(querySql).all(...queryParams) as PostRow[];
+	const rows = db
+		.prepare(
+			`SELECT p.*,
+				GROUP_CONCAT(DISTINCT pc.category_id) AS category_ids,
+				GROUP_CONCAT(DISTINCT pt.tag_id) AS tag_ids
+			 FROM posts p
+			 LEFT JOIN post_categories pc ON pc.post_id = p.id
+			 LEFT JOIN post_tags pt ON pt.post_id = p.id
+			 ${whereClause}
+			 GROUP BY p.id
+			 ORDER BY p.updated_at DESC
+			 LIMIT ? OFFSET ?`
+		)
+		.all(filterParam, perPage, offset) as PostRowWithRelations[];
 
 	return {
-		posts: rows.map((r) => rowToPostData(r, db)),
+		posts: rows.map(joinedRowToPostData),
 		total,
 		page,
 		perPage,

@@ -2,21 +2,13 @@
 	import { goto } from '$app/navigation';
 	import BlogEditor from '$lib/editor/BlogEditor.svelte';
 	import type { Editor, JSONContent } from '@tiptap/core';
+	import { generateSlug } from '$lib/utils/slugify.js';
 
 	let title = $state('');
 	let slug = $state('');
 	let slugManuallyEdited = $state(false);
 	let saving = $state(false);
 	let editor = $state<Editor | null>(null);
-
-	function generateSlug(text: string): string {
-		return text
-			.toLowerCase()
-			.replace(/[^a-z0-9\s-]/g, '')
-			.replace(/\s+/g, '-')
-			.replace(/-+/g, '-')
-			.replace(/^-|-$/g, '');
-	}
 
 	function handleTitleInput(): void {
 		if (!slugManuallyEdited) {

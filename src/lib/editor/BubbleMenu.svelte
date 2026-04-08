@@ -82,6 +82,13 @@
 		editor.chain().focus().deleteSelection().run();
 	}
 
+	/* Sync image attrs into local state when entering image context */
+	$effect(() => {
+		if (context === 'image') {
+			syncImageAttrs();
+		}
+	});
+
 	/* ─── Text color ──────────────────────────────────────────────── */
 
 	function setTextColor(): void {
@@ -219,7 +226,6 @@
 			{@render bubbleBtn('ph:link-break', 'Remove Link', false, removeLink)}
 		</div>
 	{:else if context === 'image'}
-		{void syncImageAttrs()}
 		<div class="bubble-image-fields">
 			<input
 				class="bubble-image-input"

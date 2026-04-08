@@ -14,17 +14,21 @@
 	let {
 		open = $bindable(false),
 		editor,
-		maxFileSize = 10 * 1024 * 1024
+		maxFileSize = 10 * 1024 * 1024,
+		onInsertUrl
 	}: {
 		open: boolean;
 		editor: Editor | null;
 		maxFileSize?: number;
+		onInsertUrl?: (url: string) => void;
 	} = $props();
 
 	let state = $state<MediaModalState>(createInitialState());
 
 	let canInsert = $derived(
-		(state.previewUrl || state.url) && state.alt.trim().length > 0 && !state.uploading
+		(state.previewUrl || state.url) &&
+			(onInsertUrl || state.alt.trim().length > 0) &&
+			!state.uploading
 	);
 
 	let dropzoneEl = $state<HTMLDivElement>();
@@ -172,7 +176,7 @@
 	/* ─── Insert ────────────────────────────────────────────────── */
 
 	async function handleInsert(): Promise<void> {
-		if (!editor || !canInsert) return;
+		if (!canInsert) return;
 
 		let src = state.url;
 		let width: number | null = null;
@@ -204,23 +208,28 @@
 
 		if (!src) return;
 
-		editor
-			.chain()
-			.focus()
-			.setImage({
-				src,
-				alt: state.alt,
-				title: state.title || undefined,
-				caption: state.caption || undefined,
-				description: state.description || undefined,
-				width,
-				height,
-				alignment: state.alignment,
-				linkUrl:
-					state.linkTo === 'custom' ? state.linkUrl : state.linkTo === 'media' ? src : undefined,
-				linkTarget: state.linkTo !== 'none' ? '_blank' : undefined
-			})
-			.run();
+		/* If onInsertUrl callback is provided, use it instead of inserting into editor */
+		if (onInsertUrl) {
+			onInsertUrl(src);
+		} else if (editor) {
+			editor
+				.chain()
+				.focus()
+				.setImage({
+					src,
+					alt: state.alt,
+					title: state.title || undefined,
+					caption: state.caption || undefined,
+					description: state.description || undefined,
+					width,
+					height,
+					alignment: state.alignment,
+					linkUrl:
+						state.linkTo === 'custom' ? state.linkUrl : state.linkTo === 'media' ? src : undefined,
+					linkTarget: state.linkTo !== 'none' ? '_blank' : undefined
+				})
+				.run();
+		}
 
 		open = false;
 		resetState();

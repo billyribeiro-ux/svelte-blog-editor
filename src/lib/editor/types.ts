@@ -94,6 +94,10 @@ export interface UploadResponse {
 	thumbnailUrl: string;
 	mediumUrl: string;
 	largeUrl: string;
+	avifUrl: string;
+	thumbnailAvifUrl: string;
+	mediumAvifUrl: string;
+	largeAvifUrl: string;
 	width: number;
 	height: number;
 	format: string;
