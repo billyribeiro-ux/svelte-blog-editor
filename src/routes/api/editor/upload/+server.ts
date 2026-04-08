@@ -35,7 +35,12 @@ const SIZE_VARIANTS: SizeVariant[] = [
  * Storage backend is feature-flagged via STORAGE_BACKEND env var.
  */
 export const POST: RequestHandler = async ({ request }) => {
-	const formData = await request.formData();
+	let formData: FormData;
+	try {
+		formData = await request.formData();
+	} catch {
+		return error(400, 'Request must be multipart/form-data with a file field.');
+	}
 	const file = formData.get('file');
 
 	if (!file || !(file instanceof File)) {
