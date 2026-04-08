@@ -3,6 +3,7 @@
 	import { beforeNavigate } from '$app/navigation';
 	import BlogEditor from '$lib/editor/BlogEditor.svelte';
 	import TocPanel from '$lib/editor/TocPanel.svelte';
+	import TocFloat from '$lib/editor/TocFloat.svelte';
 	import MediaModal from '$lib/editor/MediaModal.svelte';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import type { Editor, JSONContent } from '@tiptap/core';
@@ -509,6 +510,7 @@
 </div>
 
 <TocPanel items={tocItems} bind:open={tocOpen} scrollContainer={editorScrollEl} />
+<TocFloat items={tocItems} scrollContainer={editorScrollEl} />
 
 <style>
 	@layer pages {
