@@ -1,5 +1,18 @@
 import type { Editor, JSONContent } from '@tiptap/core';
 
+// ─── Table of Contents ──────────────────────────────────────────────────────
+
+/** A single heading item produced by the TableOfContents TipTap extension */
+export interface TocItem {
+	id: string;
+	level: number;
+	pos: number;
+	textContent: string;
+	isActive: boolean;
+	isScrolledOver: boolean;
+	itemIndex: number;
+}
+
 // ─── Editor Configuration ───────────────────────────────────────────────────
 
 /** Options for the createBlogEditor factory function */
@@ -7,6 +20,7 @@ export interface BlogEditorOptions {
 	content: JSONContent | string;
 	editable: boolean;
 	onUpdate?: (props: { editor: Editor; html: string; json: JSONContent }) => void;
+	onTocUpdate?: (items: TocItem[]) => void;
 	placeholder?: string;
 }
 

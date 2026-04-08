@@ -9,7 +9,7 @@
 	import StatusBar from './StatusBar.svelte';
 	import './editor.css';
 
-	import type { BlogEditorProps } from './types.js';
+	import type { BlogEditorProps, TocItem } from './types.js';
 
 	let {
 		content = '',
@@ -17,8 +17,14 @@
 		onUpdate,
 		onSave,
 		class: className = '',
-		editor = $bindable<Editor | null>(null)
-	}: BlogEditorProps & { editor?: Editor | null } = $props();
+		editor = $bindable<Editor | null>(null),
+		tocItems = $bindable<TocItem[]>([]),
+		scrollContainer = $bindable<HTMLDivElement | undefined>(undefined)
+	}: BlogEditorProps & {
+		editor?: Editor | null;
+		tocItems?: TocItem[];
+		scrollContainer?: HTMLDivElement;
+	} = $props();
 
 	let element = $state<HTMLDivElement>();
 	let mediaModalOpen = $state(false);
@@ -43,6 +49,9 @@
 			editable,
 			onUpdate: (props) => {
 				onUpdate?.(props);
+			},
+			onTocUpdate: (items) => {
+				tocItems = items as TocItem[];
 			}
 		});
 
@@ -84,7 +93,7 @@
 <div class="blog-editor {className}" role="application" aria-label="Blog editor">
 	<Toolbar editor={currentEditor} onInsertImage={openMediaModal} />
 
-	<div class="editor-content">
+	<div class="editor-content" bind:this={scrollContainer}>
 		<div class="editor-element" bind:this={element}></div>
 	</div>
 

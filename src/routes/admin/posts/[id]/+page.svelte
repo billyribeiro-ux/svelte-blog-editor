@@ -2,10 +2,11 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { beforeNavigate } from '$app/navigation';
 	import BlogEditor from '$lib/editor/BlogEditor.svelte';
+	import TocPanel from '$lib/editor/TocPanel.svelte';
 	import MediaModal from '$lib/editor/MediaModal.svelte';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import type { Editor, JSONContent } from '@tiptap/core';
-	import type { PostData, PostStatus, CategoryRow, TagRow } from '$lib/editor/types.js';
+	import type { PostData, PostStatus, CategoryRow, TagRow, TocItem } from '$lib/editor/types.js';
 	import { generateSlug } from '$lib/utils/slugify.js';
 
 	let { data } = $props<{
@@ -55,6 +56,9 @@
 
 	/* Editor */
 	let editor = $state<Editor | null>(null);
+	let tocItems = $state<TocItem[]>([]);
+	let tocOpen = $state(false);
+	let editorScrollEl = $state<HTMLDivElement | undefined>(undefined);
 	let saving = $state(false);
 	let lastSavedAt = $state('');
 	let saveError = $state('');
@@ -282,6 +286,8 @@
 				onUpdate={handleEditorUpdate}
 				onSave={handleEditorSave}
 				bind:editor
+				bind:tocItems
+				bind:scrollContainer={editorScrollEl}
 			/>
 		</main>
 
@@ -501,6 +507,8 @@
 		}}
 	/>
 </div>
+
+<TocPanel items={tocItems} bind:open={tocOpen} scrollContainer={editorScrollEl} />
 
 <style>
 	@layer pages {

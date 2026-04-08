@@ -37,7 +37,13 @@ import type { BlogEditorOptions } from './types.js';
  * This is the single source of truth for all editor extensions and configuration.
  */
 export function createBlogEditor(element: HTMLElement, options: BlogEditorOptions): Editor {
-	const { content, editable, onUpdate, placeholder = 'Write your blog post...' } = options;
+	const {
+		content,
+		editable,
+		onUpdate,
+		onTocUpdate,
+		placeholder = 'Write your blog post...'
+	} = options;
 
 	const editor = new Editor({
 		element,
@@ -116,7 +122,9 @@ export function createBlogEditor(element: HTMLElement, options: BlogEditorOption
 			/* Functional */
 			CharacterCount,
 			Mention,
-			TableOfContents,
+			TableOfContents.configure({
+				onUpdate: onTocUpdate
+			}),
 			Placeholder.configure({
 				placeholder: ({ node }) => {
 					if (node.type.name === 'heading') {
