@@ -52,6 +52,26 @@
 
 	/* ─── Image actions ─────────────────────────────────────────── */
 
+	let imageAlt = $state('');
+	let imageCaption = $state('');
+
+	function syncImageAttrs(): void {
+		if (!editor) return;
+		const attrs = editor.getAttributes('customImage');
+		imageAlt = (attrs.alt as string) || '';
+		imageCaption = (attrs.caption as string) || '';
+	}
+
+	function updateImageAlt(): void {
+		if (!editor) return;
+		editor.chain().focus().updateAttributes('customImage', { alt: imageAlt }).run();
+	}
+
+	function updateImageCaption(): void {
+		if (!editor) return;
+		editor.chain().focus().updateAttributes('customImage', { caption: imageCaption }).run();
+	}
+
 	function setImageAlignment(alignment: string): void {
 		if (!editor) return;
 		editor.chain().focus().updateAttributes('customImage', { alignment }).run();
@@ -62,17 +82,45 @@
 		editor.chain().focus().deleteSelection().run();
 	}
 
+	/* ─── Text color ──────────────────────────────────────────────── */
+
+	function setTextColor(): void {
+		if (!editor) return;
+		const color = prompt('Enter color (e.g. #ff0000, oklch(0.7 0.15 250)):');
+		if (color) {
+			editor.chain().focus().setColor(color).run();
+		}
+	}
+
 	/* ─── Table actions ─────────────────────────────────────────── */
 
-	function addRowBefore(): void { editor?.chain().focus().addRowBefore().run(); }
-	function addRowAfter(): void { editor?.chain().focus().addRowAfter().run(); }
-	function deleteRow(): void { editor?.chain().focus().deleteRow().run(); }
-	function addColBefore(): void { editor?.chain().focus().addColumnBefore().run(); }
-	function addColAfter(): void { editor?.chain().focus().addColumnAfter().run(); }
-	function deleteCol(): void { editor?.chain().focus().deleteColumn().run(); }
-	function mergeCells(): void { editor?.chain().focus().mergeCells().run(); }
-	function splitCell(): void { editor?.chain().focus().splitCell().run(); }
-	function toggleHeaderCell(): void { editor?.chain().focus().toggleHeaderCell().run(); }
+	function addRowBefore(): void {
+		editor?.chain().focus().addRowBefore().run();
+	}
+	function addRowAfter(): void {
+		editor?.chain().focus().addRowAfter().run();
+	}
+	function deleteRow(): void {
+		editor?.chain().focus().deleteRow().run();
+	}
+	function addColBefore(): void {
+		editor?.chain().focus().addColumnBefore().run();
+	}
+	function addColAfter(): void {
+		editor?.chain().focus().addColumnAfter().run();
+	}
+	function deleteCol(): void {
+		editor?.chain().focus().deleteColumn().run();
+	}
+	function mergeCells(): void {
+		editor?.chain().focus().mergeCells().run();
+	}
+	function splitCell(): void {
+		editor?.chain().focus().splitCell().run();
+	}
+	function toggleHeaderCell(): void {
+		editor?.chain().focus().toggleHeaderCell().run();
+	}
 
 	/* ─── Plugin setup ──────────────────────────────────────────── */
 
@@ -116,30 +164,39 @@
 </script>
 
 {#snippet bubbleBtn(icon: string, label: string, active: boolean, action: () => void)}
-	<button
-		class="bubble-btn"
-		class:active
-		type="button"
-		aria-label={label}
-		onclick={action}
-	>
+	<button class="bubble-btn" class:active type="button" aria-label={label} onclick={action}>
 		<Icon name={icon} size={16} />
 	</button>
 {/snippet}
 
 <div class="bubble-menu" bind:this={menuEl}>
 	{#if context === 'text'}
-		{@render bubbleBtn('ph:text-bolder', 'Bold', editor?.isActive('bold') ?? false, () => cmd(e => e.chain().focus().toggleBold().run()))}
-		{@render bubbleBtn('ph:text-italic', 'Italic', editor?.isActive('italic') ?? false, () => cmd(e => e.chain().focus().toggleItalic().run()))}
-		{@render bubbleBtn('ph:text-underline', 'Underline', editor?.isActive('underline') ?? false, () => cmd(e => e.chain().focus().toggleUnderline().run()))}
-		{@render bubbleBtn('ph:text-strikethrough', 'Strike', editor?.isActive('strike') ?? false, () => cmd(e => e.chain().focus().toggleStrike().run()))}
-		{@render bubbleBtn('ph:code', 'Code', editor?.isActive('code') ?? false, () => cmd(e => e.chain().focus().toggleCode().run()))}
+		{@render bubbleBtn('ph:text-bolder', 'Bold', editor?.isActive('bold') ?? false, () =>
+			cmd((e) => e.chain().focus().toggleBold().run())
+		)}
+		{@render bubbleBtn('ph:text-italic', 'Italic', editor?.isActive('italic') ?? false, () =>
+			cmd((e) => e.chain().focus().toggleItalic().run())
+		)}
+		{@render bubbleBtn(
+			'ph:text-underline',
+			'Underline',
+			editor?.isActive('underline') ?? false,
+			() => cmd((e) => e.chain().focus().toggleUnderline().run())
+		)}
+		{@render bubbleBtn('ph:text-strikethrough', 'Strike', editor?.isActive('strike') ?? false, () =>
+			cmd((e) => e.chain().focus().toggleStrike().run())
+		)}
+		{@render bubbleBtn('ph:code', 'Code', editor?.isActive('code') ?? false, () =>
+			cmd((e) => e.chain().focus().toggleCode().run())
+		)}
 
 		<div class="bubble-separator" aria-hidden="true"></div>
 
 		{@render bubbleBtn('ph:link', 'Link', editor?.isActive('link') ?? false, openLinkEdit)}
-		{@render bubbleBtn('ph:highlighter', 'Highlight', editor?.isActive('highlight') ?? false, () => cmd(e => e.chain().focus().toggleHighlight().run()))}
-
+		{@render bubbleBtn('ph:highlighter', 'Highlight', editor?.isActive('highlight') ?? false, () =>
+			cmd((e) => e.chain().focus().toggleHighlight().run())
+		)}
+		{@render bubbleBtn('ph:palette', 'Text Color', false, setTextColor)}
 	{:else if context === 'link'}
 		<div class="bubble-link-edit">
 			<input
@@ -147,7 +204,12 @@
 				type="url"
 				placeholder="https://..."
 				bind:value={linkUrl}
-				onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyLink(); } }}
+				onkeydown={(e) => {
+					if (e.key === 'Enter') {
+						e.preventDefault();
+						applyLink();
+					}
+				}}
 			/>
 			<label class="bubble-link-newtab">
 				<input type="checkbox" bind:checked={linkNewTab} />
@@ -156,17 +218,39 @@
 			{@render bubbleBtn('ph:check', 'Apply Link', false, applyLink)}
 			{@render bubbleBtn('ph:link-break', 'Remove Link', false, removeLink)}
 		</div>
-
 	{:else if context === 'image'}
+		{void syncImageAttrs()}
+		<div class="bubble-image-fields">
+			<input
+				class="bubble-image-input"
+				type="text"
+				placeholder="Alt text (required)"
+				bind:value={imageAlt}
+				onchange={updateImageAlt}
+			/>
+			<input
+				class="bubble-image-input"
+				type="text"
+				placeholder="Caption"
+				bind:value={imageCaption}
+				onchange={updateImageCaption}
+			/>
+		</div>
+
+		<div class="bubble-separator" aria-hidden="true"></div>
+
 		{@render bubbleBtn('ph:align-left', 'Align Left', false, () => setImageAlignment('left'))}
-		{@render bubbleBtn('ph:align-center-horizontal', 'Align Center', false, () => setImageAlignment('center'))}
+		{@render bubbleBtn('ph:align-center-horizontal', 'Align Center', false, () =>
+			setImageAlignment('center')
+		)}
 		{@render bubbleBtn('ph:align-right', 'Align Right', false, () => setImageAlignment('right'))}
-		{@render bubbleBtn('ph:arrows-out-line-horizontal', 'Full Width', false, () => setImageAlignment('full'))}
+		{@render bubbleBtn('ph:arrows-out-line-horizontal', 'Full Width', false, () =>
+			setImageAlignment('full')
+		)}
 
 		<div class="bubble-separator" aria-hidden="true"></div>
 
 		{@render bubbleBtn('ph:trash', 'Remove Image', false, removeImage)}
-
 	{:else if context === 'table'}
 		{@render bubbleBtn('ph:rows-plus-top', 'Add Row Before', false, addRowBefore)}
 		{@render bubbleBtn('ph:rows-plus-bottom', 'Add Row After', false, addRowAfter)}
@@ -212,7 +296,9 @@
 			background: transparent;
 			color: var(--color-text-muted, oklch(0.65 0.02 260));
 			cursor: pointer;
-			transition: background 0.1s ease, color 0.1s ease;
+			transition:
+				background 0.1s ease,
+				color 0.1s ease;
 
 			&:hover {
 				background: var(--color-hover, oklch(0.25 0.02 260));
@@ -267,6 +353,33 @@
 			color: var(--color-text-muted, oklch(0.65 0.02 260));
 			white-space: nowrap;
 			cursor: pointer;
+		}
+
+		.bubble-image-fields {
+			display: flex;
+			flex-direction: column;
+			gap: 4px;
+			padding-block: 2px;
+		}
+
+		.bubble-image-input {
+			inline-size: 180px;
+			padding-block: 3px;
+			padding-inline: 8px;
+			border: 1px solid var(--color-border, oklch(0.3 0.02 260));
+			border-radius: 4px;
+			background: var(--color-surface, oklch(0.13 0.01 260));
+			color: var(--color-text, oklch(0.95 0 0));
+			font-size: 0.75rem;
+
+			&:focus {
+				outline: 2px solid var(--color-accent, oklch(0.7 0.15 250));
+				outline-offset: -1px;
+			}
+
+			&::placeholder {
+				color: var(--color-text-muted, oklch(0.5 0.02 260));
+			}
 		}
 	}
 </style>
