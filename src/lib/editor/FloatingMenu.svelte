@@ -23,6 +23,7 @@
 	let selectedIndex = $state(0);
 	let isVisible = $state(false);
 	let pluginKey = 'blogFloatingMenu';
+	let suppressUntil = 0;
 
 	/* Inline URL input for YouTube / Video slash commands */
 	let urlInputMode = $state<'youtube' | 'video' | null>(null);
@@ -35,26 +36,44 @@
 	let groupedCommands = $derived(groupSlashCommands(filteredCommands));
 	let flatFiltered = $derived(filteredCommands);
 
+	function clearSlashText(): void {
+		if (!editor) return;
+		const selFrom = editor.state.selection.$from;
+		const textBefore = selFrom.nodeBefore?.textContent ?? '';
+		if (textBefore.startsWith('/')) {
+			const deleteFrom = selFrom.pos - textBefore.length;
+			editor.chain().deleteRange({ from: deleteFrom, to: selFrom.pos }).run();
+		}
+	}
+
+	function dismiss(): void {
+		query = '';
+		selectedIndex = 0;
+		isVisible = false;
+		suppressUntil = Date.now() + 150;
+	}
+
 	function executeCommand(item: SlashCommandItem): void {
 		if (!editor) return;
 
+		clearSlashText();
+
 		if (item.id === 'image') {
 			onInsertImage?.();
-			query = '';
-			selectedIndex = 0;
+			dismiss();
 			return;
 		}
 
 		if (item.id === 'youtube' || item.id === 'video') {
 			urlInputMode = item.id;
 			urlInputValue = '';
+			dismiss();
 			queueMicrotask(() => urlInputEl?.focus());
 			return;
 		}
 
 		item.action(editor);
-		query = '';
-		selectedIndex = 0;
+		dismiss();
 	}
 
 	function confirmUrlInput(): void {
@@ -83,8 +102,7 @@
 	function cancelUrlInput(): void {
 		urlInputMode = null;
 		urlInputValue = '';
-		query = '';
-		selectedIndex = 0;
+		dismiss();
 	}
 
 	function handleKeydown(e: KeyboardEvent): void {
@@ -133,20 +151,16 @@
 					placement: 'bottom-start'
 				},
 				shouldShow: ({ state }) => {
+					if (Date.now() < suppressUntil) {
+						isVisible = false;
+						return false;
+					}
+
 					const selFrom = state.selection.$from;
 					const currentLineText = selFrom.nodeBefore?.textContent ?? '';
 
 					if (currentLineText.startsWith('/')) {
 						query = currentLineText.slice(1);
-						selectedIndex = 0;
-						isVisible = true;
-						return true;
-					}
-
-					const isEmptyLine = selFrom.parent.isTextblock && selFrom.parent.content.size === 0;
-
-					if (isEmptyLine) {
-						query = '';
 						selectedIndex = 0;
 						isVisible = true;
 						return true;

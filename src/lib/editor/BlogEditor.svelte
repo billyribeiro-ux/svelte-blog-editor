@@ -110,10 +110,19 @@
 			display: flex;
 			flex-direction: column;
 			border: 1px solid var(--color-border, oklch(0.25 0.02 260));
-			border-radius: 10px;
+			border-radius: 12px;
 			overflow: hidden;
 			background: var(--color-editor-bg, oklch(0.1 0.005 260));
-			box-shadow: 0 4px 12px oklch(0 0 0 / 0.2);
+			box-shadow:
+				0 4px 12px oklch(0 0 0 / 0.2),
+				0 1px 3px oklch(0 0 0 / 0.1);
+			transition: box-shadow 0.2s ease;
+
+			&:focus-within {
+				box-shadow:
+					0 4px 16px oklch(0 0 0 / 0.25),
+					0 0 0 1px oklch(0.7 0.15 250 / 0.15);
+			}
 		}
 
 		.editor-content {
@@ -121,6 +130,9 @@
 			overflow-y: auto;
 			min-block-size: 400px;
 			max-block-size: 75dvh;
+			scroll-behavior: smooth;
+			scrollbar-width: thin;
+			scrollbar-color: oklch(0.3 0.02 260) transparent;
 		}
 
 		.editor-element {

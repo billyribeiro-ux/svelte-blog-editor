@@ -172,7 +172,13 @@
 </script>
 
 {#snippet bubbleBtn(icon: string, label: string, active: boolean, action: () => void)}
-	<button class={['bubble-btn', { active }]} type="button" aria-label={label} onclick={action}>
+	<button
+		class={['bubble-btn', { active }]}
+		type="button"
+		aria-label={label}
+		title={label}
+		onclick={action}
+	>
 		<Icon name={icon} size={16} />
 	</button>
 {/snippet}
@@ -206,7 +212,7 @@
 		)}
 		<Popover bind:open={colorPopoverOpen} align="end">
 			{#snippet trigger()}
-				<span class="bubble-btn" aria-label="Text Color">
+				<span class="bubble-btn" aria-label="Text Color" title="Text Color">
 					<Icon name="ph:palette" size={16} />
 				</span>
 			{/snippet}

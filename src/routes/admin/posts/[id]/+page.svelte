@@ -24,7 +24,7 @@
 
 	let title = $state('');
 	let slug = $state('');
-	let slugManuallyEdited = $state(true);
+	let slugManuallyEdited = $state(false);
 	let status = $state<PostStatus>('draft');
 	let publishedAt = $state('');
 	let excerpt = $state('');
@@ -42,6 +42,7 @@
 	$effect(() => {
 		title = initial.title;
 		slug = initial.slug;
+		slugManuallyEdited = !!(initial.slug && initial.slug !== generateSlug(initial.title));
 		status = initial.status;
 		publishedAt = initial.publishedAt ?? '';
 		excerpt = initial.excerpt;
@@ -368,6 +369,23 @@
 						bind:value={slug}
 						oninput={handleSlugInput}
 					/>
+					<button
+						class="slug-lock"
+						type="button"
+						title={slugManuallyEdited
+							? 'Slug locked — click to auto-generate from title'
+							: 'Slug auto-generates from title — click to lock'}
+						aria-label={slugManuallyEdited ? 'Unlock slug' : 'Lock slug'}
+						onclick={() => {
+							slugManuallyEdited = !slugManuallyEdited;
+							if (!slugManuallyEdited) {
+								slug = generateSlug(title);
+								hasUnsavedChanges = true;
+							}
+						}}
+					>
+						<Icon name={slugManuallyEdited ? 'ph:lock-simple' : 'ph:lock-simple-open'} size={14} />
+					</button>
 				</div>
 			</div>
 
@@ -701,17 +719,40 @@
 		.save-indicator {
 			font-size: 0.75rem;
 			color: oklch(0.65 0.15 145);
+			animation: fade-in 0.3s ease;
 		}
 
 		.unsaved-indicator {
 			font-size: 0.75rem;
 			color: oklch(0.7 0.15 55);
+			animation: pulse-subtle 2s ease-in-out infinite;
 		}
 
 		.error-indicator {
 			font-size: 0.75rem;
 			color: oklch(0.65 0.2 25);
 			font-weight: 500;
+		}
+
+		@keyframes pulse-subtle {
+			0%,
+			100% {
+				opacity: 1;
+			}
+			50% {
+				opacity: 0.5;
+			}
+		}
+
+		@keyframes fade-in {
+			from {
+				opacity: 0;
+				transform: translateY(-2px);
+			}
+			to {
+				opacity: 1;
+				transform: translateY(0);
+			}
 		}
 
 		.header-actions {
@@ -757,6 +798,8 @@
 
 		.title-section {
 			margin-block-end: 20px;
+			border-block-end: 1px solid var(--color-border, oklch(0.2 0.01 260));
+			padding-block-end: 20px;
 		}
 
 		.title-input {
@@ -802,6 +845,28 @@
 
 			&:focus {
 				color: var(--color-text, oklch(0.85 0 0));
+			}
+		}
+
+		.slug-lock {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			inline-size: 24px;
+			block-size: 24px;
+			border: none;
+			border-radius: 4px;
+			background: transparent;
+			color: var(--color-text-muted, oklch(0.5 0.02 260));
+			cursor: pointer;
+			flex-shrink: 0;
+			transition:
+				color 0.12s ease,
+				background 0.12s ease;
+
+			&:hover {
+				color: var(--color-text, oklch(0.85 0 0));
+				background: var(--color-hover, oklch(0.22 0.02 260));
 			}
 		}
 
@@ -862,6 +927,9 @@
 			color: var(--color-text, oklch(0.9 0 0));
 			font-size: 0.825rem;
 			font-family: inherit;
+			transition:
+				border-color 0.15s ease,
+				box-shadow 0.15s ease;
 
 			&:focus {
 				outline: none;
@@ -922,7 +990,14 @@
 			font-size: 0.825rem;
 			color: var(--color-text, oklch(0.85 0 0));
 			cursor: pointer;
-			padding-block: 2px;
+			padding-block: 3px;
+			padding-inline: 4px;
+			border-radius: 4px;
+			transition: background 0.1s ease;
+
+			&:hover {
+				background: var(--color-hover, oklch(0.18 0.01 260));
+			}
 
 			& input[type='checkbox'] {
 				accent-color: var(--color-accent, oklch(0.7 0.15 250));
@@ -975,12 +1050,18 @@
 			display: inline-flex;
 			align-items: center;
 			gap: 4px;
-			padding-block: 2px;
-			padding-inline: 8px;
-			background: var(--color-surface-elevated, oklch(0.22 0.01 260));
-			border-radius: 4px;
+			padding-block: 3px;
+			padding-inline: 10px;
+			background: var(--color-accent-muted, oklch(0.7 0.15 250 / 0.15));
+			border-radius: 12px;
 			font-size: 0.75rem;
-			color: var(--color-text, oklch(0.85 0 0));
+			font-weight: 500;
+			color: var(--color-accent, oklch(0.75 0.12 250));
+			transition: background 0.1s ease;
+
+			&:hover {
+				background: oklch(0.7 0.15 250 / 0.25);
+			}
 		}
 
 		.tag-remove {
@@ -1001,8 +1082,10 @@
 
 		.featured-preview {
 			max-inline-size: 100%;
-			border-radius: 6px;
+			border-radius: 8px;
 			display: block;
+			box-shadow: 0 2px 8px oklch(0 0 0 / 0.25);
+			border: 1px solid var(--color-border, oklch(0.25 0.02 260));
 		}
 
 		.btn-remove-featured {

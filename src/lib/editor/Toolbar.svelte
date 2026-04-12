@@ -103,13 +103,15 @@
 	label: string,
 	active: boolean,
 	action: () => void,
-	disabled?: boolean
+	disabled?: boolean,
+	shortcut?: string
 )}
 	<button
 		class={['toolbar-btn', { active }]}
 		type="button"
 		aria-label={label}
 		aria-pressed={active}
+		title={shortcut ? `${label} (${shortcut})` : label}
 		{disabled}
 		onclick={action}
 	>
@@ -124,20 +126,45 @@
 <div class="toolbar" role="toolbar" aria-label="Editor formatting toolbar">
 	<!-- Text Style -->
 	<div class="toolbar-group">
-		{@render toolbarButton('ph:text-bolder', 'Bold', isBold, () =>
-			cmd((e) => e.chain().focus().toggleBold().run())
+		{@render toolbarButton(
+			'ph:text-bolder',
+			'Bold',
+			isBold,
+			() => cmd((e) => e.chain().focus().toggleBold().run()),
+			false,
+			'⌘B'
 		)}
-		{@render toolbarButton('ph:text-italic', 'Italic', isItalic, () =>
-			cmd((e) => e.chain().focus().toggleItalic().run())
+		{@render toolbarButton(
+			'ph:text-italic',
+			'Italic',
+			isItalic,
+			() => cmd((e) => e.chain().focus().toggleItalic().run()),
+			false,
+			'⌘I'
 		)}
-		{@render toolbarButton('ph:text-underline', 'Underline', isUnderline, () =>
-			cmd((e) => e.chain().focus().toggleUnderline().run())
+		{@render toolbarButton(
+			'ph:text-underline',
+			'Underline',
+			isUnderline,
+			() => cmd((e) => e.chain().focus().toggleUnderline().run()),
+			false,
+			'⌘U'
 		)}
-		{@render toolbarButton('ph:text-strikethrough', 'Strikethrough', isStrike, () =>
-			cmd((e) => e.chain().focus().toggleStrike().run())
+		{@render toolbarButton(
+			'ph:text-strikethrough',
+			'Strikethrough',
+			isStrike,
+			() => cmd((e) => e.chain().focus().toggleStrike().run()),
+			false,
+			'⌘⇧X'
 		)}
-		{@render toolbarButton('ph:code', 'Inline Code', isCode, () =>
-			cmd((e) => e.chain().focus().toggleCode().run())
+		{@render toolbarButton(
+			'ph:code',
+			'Inline Code',
+			isCode,
+			() => cmd((e) => e.chain().focus().toggleCode().run()),
+			false,
+			'⌘E'
 		)}
 	</div>
 
@@ -145,17 +172,37 @@
 
 	<!-- Headings -->
 	<div class="toolbar-group">
-		{@render toolbarButton('ph:text-h-one', 'Heading 1', isH1, () =>
-			cmd((e) => e.chain().focus().toggleHeading({ level: 1 }).run())
+		{@render toolbarButton(
+			'ph:text-h-one',
+			'Heading 1',
+			isH1,
+			() => cmd((e) => e.chain().focus().toggleHeading({ level: 1 }).run()),
+			false,
+			'⌘⌥1'
 		)}
-		{@render toolbarButton('ph:text-h-two', 'Heading 2', isH2, () =>
-			cmd((e) => e.chain().focus().toggleHeading({ level: 2 }).run())
+		{@render toolbarButton(
+			'ph:text-h-two',
+			'Heading 2',
+			isH2,
+			() => cmd((e) => e.chain().focus().toggleHeading({ level: 2 }).run()),
+			false,
+			'⌘⌥2'
 		)}
-		{@render toolbarButton('ph:text-h-three', 'Heading 3', isH3, () =>
-			cmd((e) => e.chain().focus().toggleHeading({ level: 3 }).run())
+		{@render toolbarButton(
+			'ph:text-h-three',
+			'Heading 3',
+			isH3,
+			() => cmd((e) => e.chain().focus().toggleHeading({ level: 3 }).run()),
+			false,
+			'⌘⌥3'
 		)}
-		{@render toolbarButton('ph:text-h-four', 'Heading 4', isH4, () =>
-			cmd((e) => e.chain().focus().toggleHeading({ level: 4 }).run())
+		{@render toolbarButton(
+			'ph:text-h-four',
+			'Heading 4',
+			isH4,
+			() => cmd((e) => e.chain().focus().toggleHeading({ level: 4 }).run()),
+			false,
+			'⌘⌥4'
 		)}
 	</div>
 
@@ -165,7 +212,7 @@
 	<div class="toolbar-group">
 		<Popover bind:open={colorPopoverOpen} align="start">
 			{#snippet trigger()}
-				<span class="toolbar-btn" aria-label="Text Color">
+				<span class="toolbar-btn" aria-label="Text Color" title="Text Color">
 					<Icon name="ph:paint-bucket" size={18} />
 				</span>
 			{/snippet}
@@ -179,7 +226,7 @@
 
 		<Popover bind:open={highlightPopoverOpen} align="start">
 			{#snippet trigger()}
-				<span class="toolbar-btn" aria-label="Highlight Color">
+				<span class="toolbar-btn" aria-label="Highlight Color" title="Highlight Color">
 					<Icon name="ph:highlighter" size={18} />
 				</span>
 			{/snippet}
@@ -214,11 +261,21 @@
 
 	<!-- Lists -->
 	<div class="toolbar-group">
-		{@render toolbarButton('ph:list-bullets', 'Bullet List', isBulletList, () =>
-			cmd((e) => e.chain().focus().toggleBulletList().run())
+		{@render toolbarButton(
+			'ph:list-bullets',
+			'Bullet List',
+			isBulletList,
+			() => cmd((e) => e.chain().focus().toggleBulletList().run()),
+			false,
+			'⌘⇧8'
 		)}
-		{@render toolbarButton('ph:list-numbers', 'Ordered List', isOrderedList, () =>
-			cmd((e) => e.chain().focus().toggleOrderedList().run())
+		{@render toolbarButton(
+			'ph:list-numbers',
+			'Ordered List',
+			isOrderedList,
+			() => cmd((e) => e.chain().focus().toggleOrderedList().run()),
+			false,
+			'⌘⇧7'
 		)}
 		{@render toolbarButton('ph:check-square', 'Task List', isTaskList, () =>
 			cmd((e) => e.chain().focus().toggleTaskList().run())
@@ -229,10 +286,17 @@
 
 	<!-- Insert -->
 	<div class="toolbar-group">
-		{@render toolbarButton('ph:image', 'Insert Image', false, () => onInsertImage?.())}
+		{@render toolbarButton(
+			'ph:image',
+			'Insert Image',
+			false,
+			() => onInsertImage?.(),
+			false,
+			undefined
+		)}
 		<Popover bind:open={videoPopoverOpen} align="start">
 			{#snippet trigger()}
-				<span class="toolbar-btn" aria-label="Insert Video">
+				<span class="toolbar-btn" aria-label="Insert Video" title="Insert Video">
 					<Icon name="ph:video-camera" size={18} />
 				</span>
 			{/snippet}
@@ -261,7 +325,7 @@
 
 		<Popover bind:open={youtubePopoverOpen} align="start">
 			{#snippet trigger()}
-				<span class="toolbar-btn" aria-label="Insert YouTube Video">
+				<span class="toolbar-btn" aria-label="Insert YouTube Video" title="Insert YouTube">
 					<Icon name="ph:youtube-logo" size={18} />
 				</span>
 			{/snippet}
@@ -291,11 +355,21 @@
 		{@render toolbarButton('ph:minus', 'Horizontal Rule', false, () =>
 			cmd((e) => e.chain().focus().setHorizontalRule().run())
 		)}
-		{@render toolbarButton('ph:code-block', 'Code Block', isCodeBlock, () =>
-			cmd((e) => e.chain().focus().toggleCodeBlock().run())
+		{@render toolbarButton(
+			'ph:code-block',
+			'Code Block',
+			isCodeBlock,
+			() => cmd((e) => e.chain().focus().toggleCodeBlock().run()),
+			false,
+			'⌘⌥C'
 		)}
-		{@render toolbarButton('ph:quotes', 'Blockquote', isBlockquote, () =>
-			cmd((e) => e.chain().focus().toggleBlockquote().run())
+		{@render toolbarButton(
+			'ph:quotes',
+			'Blockquote',
+			isBlockquote,
+			() => cmd((e) => e.chain().focus().toggleBlockquote().run()),
+			false,
+			'⌘⇧B'
 		)}
 	</div>
 
@@ -308,14 +382,16 @@
 			'Undo',
 			false,
 			() => cmd((e) => e.chain().focus().undo().run()),
-			!editor?.can().undo()
+			!editor?.can().undo(),
+			'⌘Z'
 		)}
 		{@render toolbarButton(
 			'ph:arrow-u-up-right',
 			'Redo',
 			false,
 			() => cmd((e) => e.chain().focus().redo().run()),
-			!editor?.can().redo()
+			!editor?.can().redo(),
+			'⌘⇧Z'
 		)}
 		{@render toolbarButton('ph:eraser', 'Clear Formatting', false, () =>
 			cmd((e) => e.chain().focus().clearNodes().unsetAllMarks().run())
