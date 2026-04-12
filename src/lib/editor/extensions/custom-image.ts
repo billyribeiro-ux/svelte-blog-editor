@@ -1,4 +1,6 @@
 import Image from '@tiptap/extension-image';
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
+import type { NodeViewRendererProps } from '@tiptap/core';
 import type { ImageAlignment } from '../types.js';
 
 declare module '@tiptap/core' {
@@ -147,6 +149,115 @@ export const CustomImage = Image.extend({
 				tag: 'img[src]'
 			}
 		];
+	},
+
+	addNodeView() {
+		return (props: NodeViewRendererProps) => {
+			const { node, getPos, editor } = props;
+			const attrs = node.attrs as Record<string, unknown>;
+
+			const figure = document.createElement('figure');
+			figure.classList.add('blog-image', 'blog-image-resizable');
+			figure.setAttribute('data-alignment', (attrs.alignment as string) || 'center');
+			figure.contentEditable = 'false';
+
+			const wrapper = document.createElement('div');
+			wrapper.classList.add('image-resize-wrapper');
+			figure.appendChild(wrapper);
+
+			const img = document.createElement('img');
+			img.src = attrs.src as string;
+			img.alt = (attrs.alt as string) || '';
+			if (attrs.title) img.title = attrs.title as string;
+			if (attrs.width) img.width = attrs.width as number;
+			if (attrs.height) img.height = attrs.height as number;
+			img.loading = 'lazy';
+			img.draggable = false;
+			wrapper.appendChild(img);
+
+			/* Resize handle (bottom-right corner) */
+			const handle = document.createElement('div');
+			handle.classList.add('image-resize-handle');
+
+			let startX = 0;
+			let startWidth = 0;
+			let aspectRatio = 1;
+
+			function onPointerDown(e: PointerEvent): void {
+				e.preventDefault();
+				e.stopPropagation();
+
+				startX = e.clientX;
+				startWidth = img.clientWidth;
+				aspectRatio = img.naturalWidth / (img.naturalHeight || 1);
+
+				handle.setPointerCapture(e.pointerId);
+				document.addEventListener('pointermove', onPointerMove);
+				document.addEventListener('pointerup', onPointerUp);
+				figure.classList.add('resizing');
+			}
+
+			function onPointerMove(e: PointerEvent): void {
+				const dx = e.clientX - startX;
+				const newWidth = Math.max(80, startWidth + dx);
+				const newHeight = Math.round(newWidth / aspectRatio);
+				img.style.width = `${newWidth}px`;
+				img.style.height = `${newHeight}px`;
+			}
+
+			function onPointerUp(): void {
+				document.removeEventListener('pointermove', onPointerMove);
+				document.removeEventListener('pointerup', onPointerUp);
+				figure.classList.remove('resizing');
+
+				const finalWidth = img.clientWidth;
+				const finalHeight = Math.round(finalWidth / aspectRatio);
+
+				const pos = getPos();
+				if (typeof pos === 'number') {
+					editor.view.dispatch(
+						editor.view.state.tr.setNodeMarkup(pos, undefined, {
+							...node.attrs,
+							width: finalWidth,
+							height: finalHeight
+						})
+					);
+				}
+			}
+
+			handle.addEventListener('pointerdown', onPointerDown);
+			wrapper.appendChild(handle);
+
+			/* Caption */
+			if (attrs.caption) {
+				const figcaption = document.createElement('figcaption');
+				figcaption.textContent = attrs.caption as string;
+				figure.appendChild(figcaption);
+			}
+
+			return {
+				dom: figure,
+				update: (updatedNode: ProseMirrorNode) => {
+					if (updatedNode.type.name !== 'customImage') return false;
+					const a = updatedNode.attrs as Record<string, unknown>;
+					img.src = a.src as string;
+					img.alt = (a.alt as string) || '';
+					if (a.title) img.title = a.title as string;
+					if (a.width) {
+						img.style.width = `${a.width}px`;
+						img.style.height = `${a.height}px`;
+					} else {
+						img.style.width = '';
+						img.style.height = '';
+					}
+					figure.setAttribute('data-alignment', (a.alignment as string) || 'center');
+					return true;
+				},
+				destroy: () => {
+					handle.removeEventListener('pointerdown', onPointerDown);
+				}
+			};
+		};
 	},
 
 	renderHTML({ HTMLAttributes }) {

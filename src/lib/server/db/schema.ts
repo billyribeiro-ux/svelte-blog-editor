@@ -116,24 +116,44 @@ export function seed(db: Database.Database): void {
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	);
 
+	const insertPostCategory = db.prepare(
+		'INSERT INTO post_categories (post_id, category_id) VALUES (?, ?)'
+	);
+	const insertPostTag = db.prepare('INSERT INTO post_tags (post_id, tag_id) VALUES (?, ?)');
+
+	const catUncategorized = crypto.randomUUID();
+	const catTech = crypto.randomUUID();
+	const catDesign = crypto.randomUUID();
+	const catFrontend = crypto.randomUUID();
+	const catBackend = crypto.randomUUID();
+
+	const tagJS = crypto.randomUUID();
+	const tagTS = crypto.randomUUID();
+	const tagSvelte = crypto.randomUUID();
+	const tagCSS = crypto.randomUUID();
+
+	const postId = crypto.randomUUID();
+
 	const tx = db.transaction(() => {
 		insertCategory.run(
-			crypto.randomUUID(),
+			catUncategorized,
 			'Uncategorized',
 			'uncategorized',
 			'Default category',
 			null
 		);
-		insertCategory.run(crypto.randomUUID(), 'Technology', 'technology', 'Tech articles', null);
-		insertCategory.run(crypto.randomUUID(), 'Design', 'design', 'Design articles', null);
+		insertCategory.run(catTech, 'Technology', 'technology', 'Tech articles', null);
+		insertCategory.run(catDesign, 'Design', 'design', 'Design articles', null);
+		insertCategory.run(catFrontend, 'Frontend', 'frontend', 'Frontend development', catTech);
+		insertCategory.run(catBackend, 'Backend', 'backend', 'Backend development', catTech);
 
-		insertTag.run(crypto.randomUUID(), 'JavaScript', 'javascript');
-		insertTag.run(crypto.randomUUID(), 'TypeScript', 'typescript');
-		insertTag.run(crypto.randomUUID(), 'Svelte', 'svelte');
-		insertTag.run(crypto.randomUUID(), 'CSS', 'css');
+		insertTag.run(tagJS, 'JavaScript', 'javascript');
+		insertTag.run(tagTS, 'TypeScript', 'typescript');
+		insertTag.run(tagSvelte, 'Svelte', 'svelte');
+		insertTag.run(tagCSS, 'CSS', 'css');
 
 		insertPost.run(
-			crypto.randomUUID(),
+			postId,
 			'Welcome to the Blog Editor',
 			'welcome-to-the-blog-editor',
 			JSON.stringify({
@@ -161,6 +181,11 @@ export function seed(db: Database.Database): void {
 			'Welcome to the Blog Editor',
 			'Start writing your first blog post using this powerful rich text editor.'
 		);
+
+		insertPostCategory.run(postId, catTech);
+		insertPostCategory.run(postId, catFrontend);
+		insertPostTag.run(postId, tagSvelte);
+		insertPostTag.run(postId, tagTS);
 	});
 
 	tx();

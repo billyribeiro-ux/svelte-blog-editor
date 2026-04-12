@@ -77,7 +77,7 @@ export interface AudioAttributes {
 
 // ─── Media Modal ────────────────────────────────────────────────────────────
 
-export type MediaModalTab = 'upload' | 'url';
+export type MediaModalTab = 'upload' | 'url' | 'library';
 
 export type ImageSize = 'thumbnail' | 'medium' | 'large' | 'full';
 

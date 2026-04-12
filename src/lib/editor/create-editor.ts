@@ -29,6 +29,7 @@ import { CodeBlockShiki } from 'tiptap-extension-code-block-shiki';
 import { CustomImage } from './extensions/custom-image.js';
 import { CustomVideo } from './extensions/custom-video.js';
 import { CustomAudio } from './extensions/custom-audio.js';
+import { Details, DetailsSummary } from './extensions/custom-details.js';
 
 import type { BlogEditorOptions } from './types.js';
 
@@ -112,6 +113,10 @@ export function createBlogEditor(element: HTMLElement, options: BlogEditorOption
 			TableRow,
 			TableHeader,
 			TableCell,
+
+			/* Details / Summary */
+			Details,
+			DetailsSummary,
 
 			/* Tasks */
 			TaskList,

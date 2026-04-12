@@ -8,7 +8,8 @@
 		ImageAlignment,
 		ImageSize,
 		LinkTo,
-		UploadResponse
+		UploadResponse,
+		MediaRow
 	} from './types.js';
 
 	let {
@@ -55,6 +56,34 @@
 	let fileInputEl: HTMLInputElement | undefined = $state(undefined);
 	let isDragging = $state(false);
 
+	/* ─── Media library ───────────────────────────────────────── */
+	let libraryItems = $state<MediaRow[]>([]);
+	let libraryLoading = $state(false);
+	let libraryLoaded = $state(false);
+
+	async function loadLibrary(): Promise<void> {
+		if (libraryLoaded || libraryLoading) return;
+		libraryLoading = true;
+		try {
+			const res = await fetch('/api/editor/media');
+			if (res.ok) {
+				libraryItems = await res.json();
+			}
+		} finally {
+			libraryLoading = false;
+			libraryLoaded = true;
+		}
+	}
+
+	function selectLibraryItem(item: MediaRow): void {
+		modalState.url = item.large_url || item.url;
+		modalState.previewUrl = item.medium_url || item.url;
+		modalState.title = item.title;
+		modalState.alt = item.alt_text;
+		modalState.caption = item.caption;
+		modalState.description = item.description;
+	}
+
 	function resetState(): void {
 		modalState = createInitialState();
 		isDragging = false;
@@ -63,6 +92,7 @@
 	function setTab(tab: MediaModalTab): void {
 		modalState.tab = tab;
 		modalState.error = '';
+		if (tab === 'library') loadLibrary();
 	}
 
 	/* ─── File handling ─────────────────────────────────────────── */
@@ -202,7 +232,7 @@
 			}
 			width = result.width;
 			height = result.height;
-		} else if (modalState.tab === 'url') {
+		} else if (modalState.tab === 'url' || modalState.tab === 'library') {
 			src = modalState.url;
 		}
 
@@ -290,6 +320,16 @@
 				<Icon name="ph:link" size={16} />
 				URL
 			</button>
+			<button
+				class={['media-tab', { active: modalState.tab === 'library' }]}
+				type="button"
+				role="tab"
+				aria-selected={modalState.tab === 'library'}
+				onclick={() => setTab('library')}
+			>
+				<Icon name="ph:images" size={16} />
+				Library
+			</button>
 		</div>
 
 		{#if modalState.error}
@@ -365,6 +405,41 @@
 			{#if modalState.previewUrl}
 				<div class="preview-container">
 					<img src={modalState.previewUrl} alt="Preview" class="preview-image" />
+				</div>
+			{/if}
+		{/if}
+
+		<!-- Library Tab -->
+		{#if modalState.tab === 'library'}
+			{#if libraryLoading}
+				<div class="library-loading">
+					<Icon name="ph:spinner" size={24} />
+					Loading media library…
+				</div>
+			{:else if libraryItems.length === 0}
+				<div class="library-empty">
+					<Icon name="ph:image" size={32} />
+					<p>No media uploaded yet.</p>
+				</div>
+			{:else}
+				<div class="library-grid">
+					{#each libraryItems as item}
+						<button
+							class={[
+								'library-item',
+								{ selected: modalState.url === (item.large_url || item.url) }
+							]}
+							type="button"
+							onclick={() => selectLibraryItem(item)}
+							aria-label={item.alt_text || item.original_name}
+						>
+							<img
+								src={item.thumbnail_url || item.url}
+								alt={item.alt_text || item.original_name}
+								loading="lazy"
+							/>
+						</button>
+					{/each}
 				</div>
 			{/if}
 		{/if}
@@ -793,6 +868,61 @@
 				outline: 2px solid var(--color-accent, oklch(0.7 0.15 250));
 				outline-offset: 1px;
 			}
+		}
+
+		/* ─── Library ────────────────────────────────────────────── */
+
+		.library-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+			gap: 8px;
+			max-block-size: 240px;
+			overflow-y: auto;
+			padding-block: 4px;
+		}
+
+		.library-item {
+			aspect-ratio: 1;
+			border: 2px solid transparent;
+			border-radius: 6px;
+			overflow: hidden;
+			cursor: pointer;
+			background: var(--color-surface, oklch(0.13 0.01 260));
+			padding: 0;
+			transition: border-color 0.12s ease;
+
+			& img {
+				inline-size: 100%;
+				block-size: 100%;
+				object-fit: cover;
+				display: block;
+			}
+
+			&:hover {
+				border-color: var(--color-text-muted, oklch(0.5 0.02 260));
+			}
+
+			&.selected {
+				border-color: var(--color-accent, oklch(0.7 0.15 250));
+				box-shadow: 0 0 0 2px oklch(0.7 0.15 250 / 0.3);
+			}
+
+			&:focus-visible {
+				outline: 2px solid var(--color-accent, oklch(0.7 0.15 250));
+				outline-offset: 2px;
+			}
+		}
+
+		.library-loading,
+		.library-empty {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			gap: 8px;
+			padding-block: 40px;
+			color: var(--color-text-muted, oklch(0.55 0.02 260));
+			font-size: 0.85rem;
 		}
 
 		/* ─── Buttons ────────────────────────────────────────────── */

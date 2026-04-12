@@ -303,6 +303,46 @@
 		border-radius: 8px;
 	}
 
+	/* ─── Image Resize Handles ───────────────────────────────────── */
+
+	:global(.ProseMirror .image-resize-wrapper) {
+		position: relative;
+		display: inline-block;
+		max-inline-size: 100%;
+		line-height: 0;
+	}
+
+	:global(.ProseMirror .image-resize-handle) {
+		position: absolute;
+		inset-block-end: 4px;
+		inset-inline-end: 4px;
+		inline-size: 14px;
+		block-size: 14px;
+		border-radius: 3px;
+		background: var(--color-accent, oklch(0.7 0.15 250));
+		border: 2px solid oklch(0.1 0 0);
+		cursor: nwse-resize;
+		opacity: 0;
+		transition: opacity 0.12s ease;
+		z-index: 5;
+		touch-action: none;
+	}
+
+	:global(.ProseMirror figure.blog-image-resizable:hover .image-resize-handle),
+	:global(.ProseMirror figure.blog-image-resizable.resizing .image-resize-handle),
+	:global(.ProseMirror figure.blog-image-resizable.ProseMirror-selectednode .image-resize-handle) {
+		opacity: 1;
+	}
+
+	:global(.ProseMirror figure.blog-image-resizable.resizing) {
+		cursor: nwse-resize;
+		user-select: none;
+	}
+
+	:global(.ProseMirror figure.blog-image-resizable.resizing img) {
+		pointer-events: none;
+	}
+
 	/* ─── Video / Audio ──────────────────────────────────────────── */
 
 	:global(.ProseMirror figure.blog-video),
@@ -347,6 +387,35 @@
 		inline-size: 100%;
 		block-size: 100%;
 		border: none;
+	}
+
+	/* ─── Details / Summary ─────────────────────────────────────── */
+
+	:global(.ProseMirror details.blog-details) {
+		border: 1px solid var(--color-border, oklch(0.3 0.02 260));
+		border-radius: 8px;
+		padding-block: 0;
+		padding-inline: 16px;
+		margin-block: 1em;
+	}
+
+	:global(.ProseMirror details.blog-details summary) {
+		font-weight: 600;
+		cursor: pointer;
+		padding-block: 10px;
+		list-style: disclosure-closed;
+		color: var(--color-text, oklch(0.9 0 0));
+	}
+
+	:global(.ProseMirror details.blog-details[open] summary) {
+		list-style: disclosure-open;
+		margin-block-end: 8px;
+		border-block-end: 1px solid var(--color-border, oklch(0.25 0.02 260));
+		padding-block-end: 10px;
+	}
+
+	:global(.ProseMirror details.blog-details > :last-child) {
+		margin-block-end: 12px;
 	}
 
 	/* ─── Horizontal Rule ────────────────────────────────────────── */

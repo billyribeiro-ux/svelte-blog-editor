@@ -68,6 +68,24 @@
 	let seoMetaTitleLength = $derived(seoMetaTitle.length);
 	let seoMetaDescLength = $derived(seoMetaDescription.length);
 
+	/* ─── Focus keyword analysis ───────────────────────────────── */
+
+	interface KeywordCheck {
+		label: string;
+		pass: boolean;
+	}
+
+	let keywordChecks = $derived.by((): KeywordCheck[] => {
+		const kw = seoFocusKeyword.trim().toLowerCase();
+		if (!kw) return [];
+		return [
+			{ label: 'In post title', pass: title.toLowerCase().includes(kw) },
+			{ label: 'In slug', pass: slug.toLowerCase().includes(kw.replace(/\s+/g, '-')) },
+			{ label: 'In meta title', pass: seoMetaTitle.toLowerCase().includes(kw) },
+			{ label: 'In meta description', pass: seoMetaDescription.toLowerCase().includes(kw) }
+		];
+	});
+
 	/* ─── Slug generation ───────────────────────────────────────── */
 
 	function handleTitleInput(): void {
@@ -83,7 +101,29 @@
 		hasUnsavedChanges = true;
 	}
 
-	/* ─── Category toggle ───────────────────────────────────────── */
+	/* ─── Category tree ────────────────────────────────────────── */
+
+	interface CategoryNode extends CategoryRow {
+		children: CategoryNode[];
+	}
+
+	function buildCategoryTree(cats: CategoryRow[]): CategoryNode[] {
+		const map = new Map<string, CategoryNode>();
+		for (const cat of cats) {
+			map.set(cat.id, { ...cat, children: [] });
+		}
+		const roots: CategoryNode[] = [];
+		for (const node of map.values()) {
+			if (node.parent_id && map.has(node.parent_id)) {
+				map.get(node.parent_id)!.children.push(node);
+			} else {
+				roots.push(node);
+			}
+		}
+		return roots;
+	}
+
+	let categoryTree = $derived(buildCategoryTree(data.categories));
 
 	function toggleCategory(catId: string): void {
 		if (selectedCategories.includes(catId)) {
@@ -94,22 +134,73 @@
 		hasUnsavedChanges = true;
 	}
 
-	/* ─── Tag input ─────────────────────────────────────────────── */
+	/* ─── Tag input with autocomplete ──────────────────────────── */
+
+	let tagSuggestionIndex = $state(0);
+	let tagSuggestionsVisible = $state(false);
+
+	let tagSuggestions = $derived.by(() => {
+		const q = tagInput.trim().toLowerCase();
+		if (!q) return [];
+		return data.tags.filter(
+			(t: TagRow) => t.name.toLowerCase().includes(q) && !selectedTags.includes(t.id)
+		);
+	});
+
+	function selectTagSuggestion(tag: TagRow): void {
+		if (!selectedTags.includes(tag.id)) {
+			selectedTags = [...selectedTags, tag.id];
+		}
+		tagInput = '';
+		tagSuggestionsVisible = false;
+		tagSuggestionIndex = 0;
+		hasUnsavedChanges = true;
+	}
+
+	function commitTagInput(): void {
+		const name = tagInput.trim();
+		if (!name) return;
+
+		const existing = data.tags.find((t: TagRow) => t.name.toLowerCase() === name.toLowerCase());
+		const tagId = existing?.id ?? name;
+
+		if (!selectedTags.includes(tagId)) {
+			selectedTags = [...selectedTags, tagId];
+		}
+		tagInput = '';
+		tagSuggestionsVisible = false;
+		tagSuggestionIndex = 0;
+		hasUnsavedChanges = true;
+	}
 
 	function handleTagKeydown(e: KeyboardEvent): void {
+		if (tagSuggestionsVisible && tagSuggestions.length > 0) {
+			if (e.key === 'ArrowDown') {
+				e.preventDefault();
+				tagSuggestionIndex = (tagSuggestionIndex + 1) % tagSuggestions.length;
+				return;
+			}
+			if (e.key === 'ArrowUp') {
+				e.preventDefault();
+				tagSuggestionIndex =
+					(tagSuggestionIndex - 1 + tagSuggestions.length) % tagSuggestions.length;
+				return;
+			}
+			if (e.key === 'Enter') {
+				e.preventDefault();
+				selectTagSuggestion(tagSuggestions[tagSuggestionIndex]);
+				return;
+			}
+			if (e.key === 'Escape') {
+				e.preventDefault();
+				tagSuggestionsVisible = false;
+				return;
+			}
+		}
+
 		if (e.key === 'Enter' || e.key === ',') {
 			e.preventDefault();
-			const name = tagInput.trim();
-			if (!name) return;
-
-			const existing = data.tags.find((t: TagRow) => t.name.toLowerCase() === name.toLowerCase());
-			const tagId = existing?.id ?? name;
-
-			if (!selectedTags.includes(tagId)) {
-				selectedTags = [...selectedTags, tagId];
-			}
-			tagInput = '';
-			hasUnsavedChanges = true;
+			commitTagInput();
 		}
 	}
 
@@ -339,16 +430,22 @@
 					Categories
 				</h3>
 				<div class="panel-body category-list">
-					{#each data.categories as category}
-						<label class="category-item">
-							<input
-								type="checkbox"
-								checked={selectedCategories.includes(category.id)}
-								onchange={() => toggleCategory(category.id)}
-							/>
-							{category.name}
-						</label>
-					{/each}
+					{#snippet categoryNode(nodes: CategoryNode[], depth: number)}
+						{#each nodes as cat}
+							<label class="category-item" style:padding-inline-start="{depth * 20}px">
+								<input
+									type="checkbox"
+									checked={selectedCategories.includes(cat.id)}
+									onchange={() => toggleCategory(cat.id)}
+								/>
+								{cat.name}
+							</label>
+							{#if cat.children.length > 0}
+								{@render categoryNode(cat.children, depth + 1)}
+							{/if}
+						{/each}
+					{/snippet}
+					{@render categoryNode(categoryTree, 0)}
 				</div>
 			</section>
 
@@ -359,13 +456,51 @@
 					Tags
 				</h3>
 				<div class="panel-body">
-					<input
-						class="field-input"
-						type="text"
-						placeholder="Add tag, press Enter"
-						bind:value={tagInput}
-						onkeydown={handleTagKeydown}
-					/>
+					<div class="tag-input-wrapper">
+						<input
+							class="field-input"
+							type="text"
+							placeholder="Add tag, press Enter"
+							bind:value={tagInput}
+							onkeydown={handleTagKeydown}
+							oninput={() => {
+								tagSuggestionsVisible = tagInput.trim().length > 0;
+								tagSuggestionIndex = 0;
+							}}
+							onfocus={() => {
+								if (tagInput.trim().length > 0) tagSuggestionsVisible = true;
+							}}
+							onblur={() => {
+								setTimeout(() => {
+									tagSuggestionsVisible = false;
+								}, 150);
+							}}
+							role="combobox"
+							aria-expanded={tagSuggestionsVisible && tagSuggestions.length > 0}
+							aria-autocomplete="list"
+							aria-controls="tag-suggestions"
+						/>
+						{#if tagSuggestionsVisible && tagSuggestions.length > 0}
+							<ul class="tag-suggestions" id="tag-suggestions" role="listbox">
+								{#each tagSuggestions as suggestion, i}
+									<li
+										class={['tag-suggestion-item', { selected: i === tagSuggestionIndex }]}
+										role="option"
+										aria-selected={i === tagSuggestionIndex}
+										onmousedown={(e) => {
+											e.preventDefault();
+											selectTagSuggestion(suggestion);
+										}}
+										onmouseenter={() => {
+											tagSuggestionIndex = i;
+										}}
+									>
+										{suggestion.name}
+									</li>
+								{/each}
+							</ul>
+						{/if}
+					</div>
 					{#if selectedTags.length > 0}
 						<div class="tag-list">
 							{#each selectedTags as tagId}
@@ -493,6 +628,16 @@
 							}}
 						/>
 					</div>
+					{#if keywordChecks.length > 0}
+						<ul class="keyword-checks" aria-label="Keyword analysis">
+							{#each keywordChecks as check}
+								<li class={['keyword-check', { pass: check.pass }]}>
+									<Icon name={check.pass ? 'ph:check-circle' : 'ph:x-circle'} size={14} />
+									{check.label}
+								</li>
+							{/each}
+						</ul>
+					{/if}
 				</div>
 			</section>
 		</aside>
@@ -740,6 +885,29 @@
 			}
 		}
 
+		/* ─── Keyword Analysis ───────────────────────────────────── */
+
+		.keyword-checks {
+			list-style: none;
+			margin: 0;
+			padding: 0;
+			display: flex;
+			flex-direction: column;
+			gap: 4px;
+		}
+
+		.keyword-check {
+			display: flex;
+			align-items: center;
+			gap: 6px;
+			font-size: 0.75rem;
+			color: oklch(0.65 0.18 25);
+
+			&.pass {
+				color: oklch(0.65 0.17 145);
+			}
+		}
+
 		/* ─── Categories ─────────────────────────────────────────── */
 
 		.category-list {
@@ -762,6 +930,39 @@
 		}
 
 		/* ─── Tags ───────────────────────────────────────────────── */
+
+		.tag-input-wrapper {
+			position: relative;
+		}
+
+		.tag-suggestions {
+			position: absolute;
+			inset-inline: 0;
+			inset-block-start: 100%;
+			z-index: 50;
+			margin: 0;
+			padding: 4px 0;
+			list-style: none;
+			background: var(--color-surface, oklch(0.15 0.01 260));
+			border: 1px solid var(--color-border, oklch(0.3 0.02 260));
+			border-radius: 6px;
+			box-shadow: 0 4px 12px oklch(0 0 0 / 0.3);
+			max-block-size: 160px;
+			overflow-y: auto;
+		}
+
+		.tag-suggestion-item {
+			padding-block: 6px;
+			padding-inline: 10px;
+			font-size: 0.8rem;
+			color: var(--color-text, oklch(0.85 0 0));
+			cursor: pointer;
+
+			&.selected {
+				background: var(--color-accent-muted, oklch(0.7 0.15 250 / 0.2));
+				color: var(--color-accent, oklch(0.7 0.15 250));
+			}
+		}
 
 		.tag-list {
 			display: flex;

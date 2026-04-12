@@ -106,11 +106,8 @@ export function getSlashCommands(): SlashCommandItem[] {
 			description: 'Embed a YouTube video',
 			icon: 'ph:youtube-logo',
 			category: 'media',
-			action: (editor: Editor) => {
-				const url = prompt('Enter YouTube URL:');
-				if (url) {
-					editor.chain().focus().setYoutubeVideo({ src: url }).run();
-				}
+			action: () => {
+				/* Handled by FloatingMenu — triggers YouTube URL popover */
 			}
 		},
 		{
@@ -120,7 +117,7 @@ export function getSlashCommands(): SlashCommandItem[] {
 			icon: 'ph:video-camera',
 			category: 'media',
 			action: () => {
-				/* Handled by FloatingMenu — triggers a video URL prompt */
+				/* Handled by FloatingMenu — triggers Video URL popover */
 			}
 		},
 
@@ -149,6 +146,14 @@ export function getSlashCommands(): SlashCommandItem[] {
 			icon: 'ph:minus',
 			category: 'advanced',
 			action: (editor: Editor) => editor.chain().focus().setHorizontalRule().run()
+		},
+		{
+			id: 'details',
+			title: 'Details / Summary',
+			description: 'Collapsible content block',
+			icon: 'ph:caret-circle-down',
+			category: 'advanced',
+			action: (editor: Editor) => editor.chain().focus().setDetails().run()
 		}
 	];
 }
