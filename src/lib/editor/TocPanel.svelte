@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import type { TocItem } from './types.js';
@@ -65,7 +64,9 @@
 		);
 
 		/* Observe every heading that has an id assigned by TipTap TOC extension */
-		const headings = scrollContainer.querySelectorAll<HTMLElement>('h1[id], h2[id], h3[id], h4[id]');
+		const headings = scrollContainer.querySelectorAll<HTMLElement>(
+			'h1[id], h2[id], h3[id], h4[id]'
+		);
 		for (const h of headings) {
 			if (h.id && !observed.has(h.id)) {
 				observer.observe(h);
@@ -80,12 +81,11 @@
 		if (browser) {
 			/* Small delay to let TipTap assign IDs to the DOM */
 			const id = setTimeout(observeHeadings, 80);
-			return () => clearTimeout(id);
+			return () => {
+				clearTimeout(id);
+				observer?.disconnect();
+			};
 		}
-	});
-
-	onDestroy(() => {
-		observer?.disconnect();
 	});
 
 	/* ─── Scroll-to-heading ─────────────────────────────────────── */
@@ -167,8 +167,7 @@
 
 <!-- Toggle Button -->
 <button
-	class="toc-toggle"
-	class:open
+	class={['toc-toggle', { open }]}
 	type="button"
 	aria-label={open ? 'Close table of contents' : 'Open table of contents'}
 	aria-expanded={open}
@@ -186,7 +185,7 @@
 
 <!-- Panel -->
 {#if open}
-	<aside class="toc-panel" role="complementary" aria-label="Table of contents">
+	<aside class="toc-panel" aria-label="Table of contents">
 		<!-- Header -->
 		<div class="toc-header">
 			<div class="toc-header-left">
@@ -230,9 +229,10 @@
 			<ol class="toc-list" bind:this={listEl} role="list">
 				{#each items as item, i (item.id)}
 					<li
-						class="toc-item"
-						class:is-active={item.id === activeId}
-						class:is-scrolled-over={item.isScrolledOver}
+						class={[
+							'toc-item',
+							{ 'is-active': item.id === activeId, 'is-scrolled-over': item.isScrolledOver }
+						]}
 						style:padding-inline-start={INDENT[item.level] ?? '0px'}
 					>
 						<button
@@ -449,11 +449,7 @@
 
 		.toc-progress-fill {
 			block-size: 100%;
-			background: linear-gradient(
-				to right,
-				oklch(0.7 0.15 250),
-				oklch(0.65 0.2 300)
-			);
+			background: linear-gradient(to right, oklch(0.7 0.15 250), oklch(0.65 0.2 300));
 			transition: inline-size 0.25s ease-out;
 			border-radius: 0 2px 2px 0;
 		}
@@ -594,8 +590,15 @@
 		}
 
 		@keyframes toc-dot-pulse {
-			0%, 100% { opacity: 1; scale: 1; }
-			50% { opacity: 0.5; scale: 0.8; }
+			0%,
+			100% {
+				opacity: 1;
+				scale: 1;
+			}
+			50% {
+				opacity: 0.5;
+				scale: 0.8;
+			}
 		}
 
 		/* ─── Stats footer ───────────────────────────────────────── */

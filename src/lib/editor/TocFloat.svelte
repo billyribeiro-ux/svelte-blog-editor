@@ -1,5 +1,10 @@
+<script lang="ts" module>
+	function truncate(text: string, max: number): string {
+		return text.length > max ? text.slice(0, max).trimEnd() + '…' : text;
+	}
+</script>
+
 <script lang="ts">
-	import { onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import type { TocItem } from './types.js';
@@ -28,12 +33,6 @@
 			expanded = false;
 		}
 	}
-
-	$effect(() => {
-		if (!browser) return;
-		document.addEventListener('mousedown', handleDocClick);
-		return () => document.removeEventListener('mousedown', handleDocClick);
-	});
 
 	/* ─── Reading progress ──────────────────────────────────────── */
 
@@ -71,7 +70,9 @@
 			{ root: scrollContainer, rootMargin: '-8% 0px -75% 0px', threshold: 0 }
 		);
 
-		const headings = scrollContainer.querySelectorAll<HTMLElement>('h1[id], h2[id], h3[id], h4[id]');
+		const headings = scrollContainer.querySelectorAll<HTMLElement>(
+			'h1[id], h2[id], h3[id], h4[id]'
+		);
 		for (const h of headings) {
 			if (h.id) observer.observe(h);
 		}
@@ -81,11 +82,12 @@
 		void items;
 		if (browser) {
 			const t = setTimeout(observeHeadings, 80);
-			return () => clearTimeout(t);
+			return () => {
+				clearTimeout(t);
+				observer?.disconnect();
+			};
 		}
 	});
-
-	onDestroy(() => observer?.disconnect());
 
 	/* ─── Scroll to heading ──────────────────────────────────────── */
 
@@ -104,7 +106,10 @@
 
 	function handleKeydown(e: KeyboardEvent): void {
 		if (!expanded) return;
-		if (e.key === 'Escape') { expanded = false; return; }
+		if (e.key === 'Escape') {
+			expanded = false;
+			return;
+		}
 		if (e.key === 'ArrowDown') {
 			e.preventDefault();
 			focusedIndex = Math.min(focusedIndex + 1, items.length - 1);
@@ -123,7 +128,10 @@
 
 	const INDENT: Record<number, string> = { 1: '0px', 2: '10px', 3: '20px', 4: '30px' };
 	const ICON: Record<number, string> = {
-		1: 'ph:text-h-one', 2: 'ph:text-h-two', 3: 'ph:text-h-three', 4: 'ph:text-h-four'
+		1: 'ph:text-h-one',
+		2: 'ph:text-h-two',
+		3: 'ph:text-h-three',
+		4: 'ph:text-h-four'
 	};
 
 	let activeItem = $derived(items.find((i) => i.id === activeId));
@@ -131,9 +139,9 @@
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
+<svelte:document onmousedown={handleDocClick} />
 
-<div class="toc-float" class:expanded bind:this={wrapperEl}>
-
+<div class={['toc-float', { expanded }]} bind:this={wrapperEl}>
 	<!-- Expanded card — renders above the pill -->
 	{#if expanded}
 		<div class="toc-card" role="dialog" aria-label="Table of contents">
@@ -161,9 +169,10 @@
 				<ol class="card-list" bind:this={listEl} role="list">
 					{#each items as item, i (item.id)}
 						<li
-							class="card-item"
-							class:is-active={item.id === activeId}
-							class:is-past={item.isScrolledOver}
+							class={[
+								'card-item',
+								{ 'is-active': item.id === activeId, 'is-past': item.isScrolledOver }
+							]}
 							style:padding-inline-start={INDENT[item.level] ?? '0px'}
 						>
 							<button
@@ -172,7 +181,9 @@
 								tabindex={expanded ? 0 : -1}
 								aria-current={item.id === activeId ? 'location' : undefined}
 								onclick={() => scrollTo(item)}
-								onfocus={() => { focusedIndex = i; }}
+								onfocus={() => {
+									focusedIndex = i;
+								}}
 							>
 								<span class="item-icon" aria-hidden="true">
 									<Icon name={ICON[item.level] ?? 'ph:text-h'} size={11} />
@@ -230,12 +241,6 @@
 		{/if}
 	</button>
 </div>
-
-<script lang="ts" module>
-	function truncate(text: string, max: number): string {
-		return text.length > max ? text.slice(0, max).trimEnd() + '…' : text;
-	}
-</script>
 
 <style>
 	@layer components {
@@ -353,7 +358,9 @@
 			list-style: none;
 			padding-inline-start: 0;
 
-			&::-webkit-scrollbar { inline-size: 3px; }
+			&::-webkit-scrollbar {
+				inline-size: 3px;
+			}
 			&::-webkit-scrollbar-thumb {
 				background: oklch(0.32 0.02 260);
 				border-radius: 2px;
@@ -434,8 +441,15 @@
 		}
 
 		@keyframes pip-pulse {
-			0%, 100% { opacity: 1; scale: 1; }
-			50% { opacity: 0.4; scale: 0.7; }
+			0%,
+			100% {
+				opacity: 1;
+				scale: 1;
+			}
+			50% {
+				opacity: 0.4;
+				scale: 0.7;
+			}
 		}
 
 		/* ─── Card footer ────────────────────────────────────────── */

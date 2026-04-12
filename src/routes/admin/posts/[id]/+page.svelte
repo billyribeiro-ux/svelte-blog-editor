@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
 	import { beforeNavigate } from '$app/navigation';
 	import BlogEditor from '$lib/editor/BlogEditor.svelte';
 	import TocPanel from '$lib/editor/TocPanel.svelte';
@@ -57,7 +56,7 @@
 
 	/* Editor */
 	let editor = $state<Editor | null>(null);
-	let tocItems = $state<TocItem[]>([]);
+	let tocItems = $state.raw<TocItem[]>([]);
 	let tocOpen = $state(false);
 	let editorScrollEl = $state<HTMLDivElement | undefined>(undefined);
 	let saving = $state(false);
@@ -103,7 +102,7 @@
 			const name = tagInput.trim();
 			if (!name) return;
 
-			const existing = data.tags.find((t) => t.name.toLowerCase() === name.toLowerCase());
+			const existing = data.tags.find((t: TagRow) => t.name.toLowerCase() === name.toLowerCase());
 			const tagId = existing?.id ?? name;
 
 			if (!selectedTags.includes(tagId)) {
@@ -120,7 +119,7 @@
 	}
 
 	function getTagName(tagId: string): string {
-		const tag = data.tags.find((t) => t.id === tagId);
+		const tag = data.tags.find((t: TagRow) => t.id === tagId);
 		return tag?.name ?? tagId;
 	}
 
@@ -198,17 +197,17 @@
 		}, 5_000);
 	}
 
-	onMount(() => {
+	$effect(() => {
 		autoSaveInterval = setInterval(() => {
 			if (hasUnsavedChanges && !saving) {
 				save();
 			}
 		}, 30_000);
-	});
 
-	onDestroy(() => {
-		clearTimeout(autoSaveDebounce);
-		clearInterval(autoSaveInterval);
+		return () => {
+			clearTimeout(autoSaveDebounce);
+			clearInterval(autoSaveInterval);
+		};
 	});
 
 	/* ─── Unsaved changes warning ───────────────────────────────── */
@@ -448,7 +447,7 @@
 					<div class="field">
 						<label class="field-label" for="seo-title">
 							Meta Title
-							<span class="char-count" class:warning={seoMetaTitleLength > 60}>
+							<span class={['char-count', { warning: seoMetaTitleLength > 60 }]}>
 								{seoMetaTitleLength}/60
 							</span>
 						</label>
@@ -466,7 +465,7 @@
 					<div class="field">
 						<label class="field-label" for="seo-desc">
 							Meta Description
-							<span class="char-count" class:warning={seoMetaDescLength > 160}>
+							<span class={['char-count', { warning: seoMetaDescLength > 160 }]}>
 								{seoMetaDescLength}/160
 							</span>
 						</label>

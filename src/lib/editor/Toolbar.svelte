@@ -106,8 +106,7 @@
 	disabled?: boolean
 )}
 	<button
-		class="toolbar-btn"
-		class:active
+		class={['toolbar-btn', { active }]}
 		type="button"
 		aria-label={label}
 		aria-pressed={active}

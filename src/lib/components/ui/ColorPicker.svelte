@@ -46,9 +46,10 @@
 	<div class="color-grid">
 		{#each presets as preset}
 			<button
-				class="color-swatch"
-				class:active={value === preset.value}
-				class:is-default={preset.value === ''}
+				class={[
+					'color-swatch',
+					{ active: value === preset.value, 'is-default': preset.value === '' }
+				]}
 				type="button"
 				title={preset.label}
 				aria-label={preset.label}
@@ -98,7 +99,9 @@
 			border: 2px solid transparent;
 			cursor: pointer;
 			position: relative;
-			transition: border-color 0.15s ease, transform 0.1s ease;
+			transition:
+				border-color 0.15s ease,
+				transform 0.1s ease;
 			overflow: hidden;
 
 			&:hover {

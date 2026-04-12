@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
 	import type { Editor, JSONContent } from '@tiptap/core';
 	import { createBlogEditor } from './create-editor.js';
 	import Toolbar from './Toolbar.svelte';
@@ -41,7 +40,7 @@
 
 	/* ─── Lifecycle ─────────────────────────────────────────────── */
 
-	onMount(() => {
+	$effect(() => {
 		if (!element) return;
 
 		const instance = createBlogEditor(element, {
@@ -61,10 +60,10 @@
 		});
 
 		editorState = { editor: instance };
-	});
 
-	onDestroy(() => {
-		editorState.editor?.destroy();
+		return () => {
+			instance.destroy();
+		};
 	});
 
 	/* ─── Keyboard shortcuts ────────────────────────────────────── */

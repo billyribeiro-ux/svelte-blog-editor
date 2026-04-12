@@ -56,8 +56,7 @@
 	<nav class="status-filters" aria-label="Filter posts by status">
 		{#each statusFilters as filter}
 			<a
-				class="status-filter"
-				class:active={data.currentStatus === (filter.value || null)}
+				class={['status-filter', { active: data.currentStatus === (filter.value || null) }]}
 				href="/admin/posts{filter.value ? `?status=${filter.value}` : ''}"
 			>
 				{filter.label}
@@ -86,7 +85,7 @@
 								<span class="post-slug">/{post.slug}</span>
 							</td>
 							<td>
-								<span class="status-badge" style:color={statusColors[post.status]}>
+								<span class="status-badge" style:color={statusColors[post.status as PostStatus]}>
 									{post.status}
 								</span>
 							</td>
@@ -104,8 +103,7 @@
 			<nav class="pagination" aria-label="Posts pagination">
 				{#each Array.from({ length: data.totalPages }, (_, i) => i + 1) as pageNum}
 					<a
-						class="pagination-link"
-						class:active={pageNum === data.page}
+						class={['pagination-link', { active: pageNum === data.page }]}
 						href="/admin/posts?page={pageNum}{data.currentStatus
 							? `&status=${data.currentStatus}`
 							: ''}"

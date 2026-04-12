@@ -23,18 +23,6 @@
 		onInsertUrl?: (url: string) => void;
 	} = $props();
 
-	let state = $state<MediaModalState>(createInitialState());
-
-	let canInsert = $derived(
-		(state.previewUrl || state.url) &&
-			(onInsertUrl || state.alt.trim().length > 0) &&
-			!state.uploading
-	);
-
-	let dropzoneEl = $state<HTMLDivElement>();
-	let fileInputEl = $state<HTMLInputElement>();
-	let isDragging = $state(false);
-
 	function createInitialState(): MediaModalState {
 		return {
 			tab: 'upload',
@@ -55,14 +43,26 @@
 		};
 	}
 
+	let modalState: MediaModalState = $state(createInitialState());
+
+	let canInsert = $derived(
+		(modalState.previewUrl || modalState.url) &&
+			(onInsertUrl || modalState.alt.trim().length > 0) &&
+			!modalState.uploading
+	);
+
+	let dropzoneEl: HTMLDivElement | undefined = $state(undefined);
+	let fileInputEl: HTMLInputElement | undefined = $state(undefined);
+	let isDragging = $state(false);
+
 	function resetState(): void {
-		state = createInitialState();
+		modalState = createInitialState();
 		isDragging = false;
 	}
 
 	function setTab(tab: MediaModalTab): void {
-		state.tab = tab;
-		state.error = '';
+		modalState.tab = tab;
+		modalState.error = '';
 	}
 
 	/* ─── File handling ─────────────────────────────────────────── */
@@ -83,16 +83,16 @@
 	function handleFile(file: File): void {
 		const error = validateFile(file);
 		if (error) {
-			state.error = error;
+			modalState.error = error;
 			return;
 		}
 
-		state.file = file;
-		state.error = '';
+		modalState.file = file;
+		modalState.error = '';
 
 		const reader = new FileReader();
 		reader.onload = (e) => {
-			state.previewUrl = e.target?.result as string;
+			modalState.previewUrl = e.target?.result as string;
 		};
 		reader.readAsDataURL(file);
 	}
@@ -122,32 +122,32 @@
 	/* ─── URL handling ──────────────────────────────────────────── */
 
 	function handleUrlInput(): void {
-		if (state.url) {
-			state.previewUrl = state.url;
-			state.error = '';
+		if (modalState.url) {
+			modalState.previewUrl = modalState.url;
+			modalState.error = '';
 		} else {
-			state.previewUrl = '';
+			modalState.previewUrl = '';
 		}
 	}
 
 	/* ─── Upload ────────────────────────────────────────────────── */
 
 	async function uploadFile(): Promise<UploadResponse | null> {
-		if (!state.file) return null;
+		if (!modalState.file) return null;
 
-		state.uploading = true;
-		state.uploadProgress = 0;
-		state.error = '';
+		modalState.uploading = true;
+		modalState.uploadProgress = 0;
+		modalState.error = '';
 
 		try {
 			const formData = new FormData();
-			formData.append('file', state.file);
+			formData.append('file', modalState.file);
 
 			const xhr = new XMLHttpRequest();
 			const response = await new Promise<UploadResponse>((resolve, reject) => {
 				xhr.upload.addEventListener('progress', (e) => {
 					if (e.lengthComputable) {
-						state.uploadProgress = Math.round((e.loaded / e.total) * 100);
+						modalState.uploadProgress = Math.round((e.loaded / e.total) * 100);
 					}
 				});
 
@@ -166,10 +166,10 @@
 
 			return response;
 		} catch (err) {
-			state.error = err instanceof Error ? err.message : 'Upload failed';
+			modalState.error = err instanceof Error ? err.message : 'Upload failed';
 			return null;
 		} finally {
-			state.uploading = false;
+			modalState.uploading = false;
 		}
 	}
 
@@ -178,15 +178,15 @@
 	async function handleInsert(): Promise<void> {
 		if (!canInsert) return;
 
-		let src = state.url;
+		let src = modalState.url;
 		let width: number | null = null;
 		let height: number | null = null;
 
-		if (state.tab === 'upload' && state.file) {
+		if (modalState.tab === 'upload' && modalState.file) {
 			const result = await uploadFile();
 			if (!result) return;
 
-			switch (state.size) {
+			switch (modalState.size) {
 				case 'thumbnail':
 					src = result.thumbnailUrl;
 					break;
@@ -202,8 +202,8 @@
 			}
 			width = result.width;
 			height = result.height;
-		} else if (state.tab === 'url') {
-			src = state.url;
+		} else if (modalState.tab === 'url') {
+			src = modalState.url;
 		}
 
 		if (!src) return;
@@ -217,16 +217,20 @@
 				.focus()
 				.setImage({
 					src,
-					alt: state.alt,
-					title: state.title || undefined,
-					caption: state.caption || undefined,
-					description: state.description || undefined,
+					alt: modalState.alt,
+					title: modalState.title || undefined,
+					caption: modalState.caption || undefined,
+					description: modalState.description || undefined,
 					width,
 					height,
-					alignment: state.alignment,
+					alignment: modalState.alignment,
 					linkUrl:
-						state.linkTo === 'custom' ? state.linkUrl : state.linkTo === 'media' ? src : undefined,
-					linkTarget: state.linkTo !== 'none' ? '_blank' : undefined
+						modalState.linkTo === 'custom'
+							? modalState.linkUrl
+							: modalState.linkTo === 'media'
+								? src
+								: undefined,
+					linkTarget: modalState.linkTo !== 'none' ? '_blank' : undefined
 				})
 				.run();
 		}
@@ -267,22 +271,20 @@
 		<!-- Tab Switcher -->
 		<div class="media-tabs" role="tablist">
 			<button
-				class="media-tab"
-				class:active={state.tab === 'upload'}
+				class={['media-tab', { active: modalState.tab === 'upload' }]}
 				type="button"
 				role="tab"
-				aria-selected={state.tab === 'upload'}
+				aria-selected={modalState.tab === 'upload'}
 				onclick={() => setTab('upload')}
 			>
 				<Icon name="ph:upload-simple" size={16} />
 				Upload
 			</button>
 			<button
-				class="media-tab"
-				class:active={state.tab === 'url'}
+				class={['media-tab', { active: modalState.tab === 'url' }]}
 				type="button"
 				role="tab"
-				aria-selected={state.tab === 'url'}
+				aria-selected={modalState.tab === 'url'}
 				onclick={() => setTab('url')}
 			>
 				<Icon name="ph:link" size={16} />
@@ -290,19 +292,18 @@
 			</button>
 		</div>
 
-		{#if state.error}
+		{#if modalState.error}
 			<div class="media-error" role="alert">
 				<Icon name="ph:warning-circle" size={16} />
-				{state.error}
+				{modalState.error}
 			</div>
 		{/if}
 
 		<!-- Upload Tab -->
-		{#if state.tab === 'upload'}
-			{#if !state.previewUrl}
+		{#if modalState.tab === 'upload'}
+			{#if !modalState.previewUrl}
 				<div
-					class="dropzone"
-					class:dragging={isDragging}
+					class={['dropzone', { dragging: isDragging }]}
 					bind:this={dropzoneEl}
 					role="button"
 					tabindex={0}
@@ -330,11 +331,14 @@
 				/>
 			{:else}
 				<div class="preview-container">
-					<img src={state.previewUrl} alt="Preview" class="preview-image" />
-					{#if state.uploading}
+					<img src={modalState.previewUrl} alt="Preview" class="preview-image" />
+					{#if modalState.uploading}
 						<div class="upload-progress">
-							<div class="upload-progress-bar" style:inline-size="{state.uploadProgress}%"></div>
-							<span class="upload-progress-text">{state.uploadProgress}%</span>
+							<div
+								class="upload-progress-bar"
+								style:inline-size="{modalState.uploadProgress}%"
+							></div>
+							<span class="upload-progress-text">{modalState.uploadProgress}%</span>
 						</div>
 					{/if}
 					<button class="preview-remove" type="button" onclick={resetState}>
@@ -346,7 +350,7 @@
 		{/if}
 
 		<!-- URL Tab -->
-		{#if state.tab === 'url'}
+		{#if modalState.tab === 'url'}
 			<div class="field">
 				<label class="field-label" for="media-url">Image URL</label>
 				<input
@@ -354,19 +358,19 @@
 					class="field-input"
 					type="url"
 					placeholder="https://example.com/image.jpg"
-					bind:value={state.url}
+					bind:value={modalState.url}
 					oninput={handleUrlInput}
 				/>
 			</div>
-			{#if state.previewUrl}
+			{#if modalState.previewUrl}
 				<div class="preview-container">
-					<img src={state.previewUrl} alt="Preview" class="preview-image" />
+					<img src={modalState.previewUrl} alt="Preview" class="preview-image" />
 				</div>
 			{/if}
 		{/if}
 
 		<!-- SEO Metadata Fields -->
-		{#if state.previewUrl || state.url}
+		{#if modalState.previewUrl || modalState.url}
 			<div class="media-fields">
 				<div class="field">
 					<label class="field-label" for="media-title">Title</label>
@@ -375,7 +379,7 @@
 						class="field-input"
 						type="text"
 						placeholder="Image title"
-						bind:value={state.title}
+						bind:value={modalState.title}
 					/>
 				</div>
 
@@ -389,7 +393,7 @@
 						class="field-textarea"
 						placeholder="Describe the image for screen readers and SEO. Be specific and descriptive."
 						rows={2}
-						bind:value={state.alt}
+						bind:value={modalState.alt}
 					></textarea>
 					<p class="field-help">
 						<Icon name="ph:info" size={14} />
@@ -404,7 +408,7 @@
 						class="field-input"
 						type="text"
 						placeholder="Displayed below the image in the post"
-						bind:value={state.caption}
+						bind:value={modalState.caption}
 					/>
 				</div>
 
@@ -415,7 +419,7 @@
 						class="field-textarea"
 						placeholder="Internal description for media library/CMS"
 						rows={2}
-						bind:value={state.description}
+						bind:value={modalState.description}
 					></textarea>
 				</div>
 
@@ -423,7 +427,7 @@
 				<div class="display-options">
 					<div class="field">
 						<label class="field-label" for="media-size">Size</label>
-						<select id="media-size" class="field-select" bind:value={state.size}>
+						<select id="media-size" class="field-select" bind:value={modalState.size}>
 							{#each Object.entries(sizeLabels) as [value, label]}
 								<option {value}>{label}</option>
 							{/each}
@@ -435,13 +439,12 @@
 						<div class="alignment-group" role="radiogroup" aria-label="Image alignment">
 							{#each alignmentOptions as opt}
 								<button
-									class="alignment-btn"
-									class:active={state.alignment === opt.value}
+									class={['alignment-btn', { active: modalState.alignment === opt.value }]}
 									type="button"
 									aria-label={opt.label}
-									aria-pressed={state.alignment === opt.value}
+									aria-pressed={modalState.alignment === opt.value}
 									onclick={() => {
-										state.alignment = opt.value;
+										modalState.alignment = opt.value;
 									}}
 								>
 									<Icon name={opt.icon} size={16} />
@@ -452,14 +455,14 @@
 
 					<div class="field">
 						<label class="field-label" for="media-link-to">Link To</label>
-						<select id="media-link-to" class="field-select" bind:value={state.linkTo}>
+						<select id="media-link-to" class="field-select" bind:value={modalState.linkTo}>
 							{#each linkToOptions as opt}
 								<option value={opt.value}>{opt.label}</option>
 							{/each}
 						</select>
 					</div>
 
-					{#if state.linkTo === 'custom'}
+					{#if modalState.linkTo === 'custom'}
 						<div class="field">
 							<label class="field-label" for="media-link-url">Link URL</label>
 							<input
@@ -467,7 +470,7 @@
 								class="field-input"
 								type="url"
 								placeholder="https://..."
-								bind:value={state.linkUrl}
+								bind:value={modalState.linkUrl}
 							/>
 						</div>
 					{/if}

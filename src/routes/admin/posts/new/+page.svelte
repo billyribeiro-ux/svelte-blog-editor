@@ -52,7 +52,7 @@
 			});
 
 			if (response.ok) {
-				const post = await response.json();
+				const post = (await response.json()) as { id: string };
 				goto(`/admin/posts/${post.id}`);
 			} else {
 				const body = await response.json().catch(() => null);

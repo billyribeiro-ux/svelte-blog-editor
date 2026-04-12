@@ -1,6 +1,4 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
-	import { browser } from '$app/environment';
 	import type { Editor } from '@tiptap/core';
 	import { FloatingMenuPlugin } from '@tiptap/extension-floating-menu';
 	import Icon from '$lib/components/ui/Icon.svelte';
@@ -71,7 +69,7 @@
 		selected?.scrollIntoView({ block: 'nearest' });
 	}
 
-	onMount(() => {
+	$effect(() => {
 		if (!editor || !menuEl) return;
 
 		editor.registerPlugin(
@@ -79,8 +77,7 @@
 				pluginKey,
 				editor,
 				element: menuEl,
-				tippyOptions: {
-					duration: [150, 100],
+				options: {
 					placement: 'bottom-start'
 				},
 				shouldShow: ({ state }) => {
@@ -109,16 +106,13 @@
 			})
 		);
 
-		if (browser) document.addEventListener('keydown', handleKeydown);
-	});
-
-	onDestroy(() => {
-		if (editor) {
+		return () => {
 			editor.unregisterPlugin(pluginKey);
-		}
-		if (browser) document.removeEventListener('keydown', handleKeydown);
+		};
 	});
 </script>
+
+<svelte:document onkeydown={handleKeydown} />
 
 <div class="floating-menu" bind:this={menuEl}>
 	{#if isVisible && flatFiltered.length > 0}
@@ -130,8 +124,7 @@
 				{#each items as item, i}
 					{@const globalIdx = flatFiltered.indexOf(item)}
 					<button
-						class="slash-item"
-						class:selected={globalIdx === selectedIndex}
+						class={['slash-item', { selected: globalIdx === selectedIndex }]}
 						type="button"
 						role="option"
 						aria-selected={globalIdx === selectedIndex}

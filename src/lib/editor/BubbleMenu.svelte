@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
 	import type { Editor } from '@tiptap/core';
 	import { BubbleMenuPlugin } from '@tiptap/extension-bubble-menu';
 	import Icon from '$lib/components/ui/Icon.svelte';
@@ -137,7 +136,7 @@
 
 	/* ─── Plugin setup ──────────────────────────────────────────── */
 
-	onMount(() => {
+	$effect(() => {
 		if (!editor || !menuEl) return;
 
 		editor.registerPlugin(
@@ -145,10 +144,8 @@
 				pluginKey,
 				editor,
 				element: menuEl,
-				tippyOptions: {
-					duration: [150, 100],
-					placement: 'top',
-					animation: 'fade'
+				options: {
+					placement: 'top'
 				},
 				shouldShow: ({ editor: e, state }) => {
 					const { selection } = state;
@@ -161,12 +158,10 @@
 				}
 			})
 		);
-	});
 
-	onDestroy(() => {
-		if (editor) {
+		return () => {
 			editor.unregisterPlugin(pluginKey);
-		}
+		};
 	});
 
 	/* ─── Helper: command button snippet ────────────────────────── */
@@ -177,7 +172,7 @@
 </script>
 
 {#snippet bubbleBtn(icon: string, label: string, active: boolean, action: () => void)}
-	<button class="bubble-btn" class:active type="button" aria-label={label} onclick={action}>
+	<button class={['bubble-btn', { active }]} type="button" aria-label={label} onclick={action}>
 		<Icon name={icon} size={16} />
 	</button>
 {/snippet}
