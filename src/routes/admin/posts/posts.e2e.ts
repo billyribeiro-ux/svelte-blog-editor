@@ -39,26 +39,43 @@ test.describe('Post Editor Page', () => {
 	test('title input exists and is editable', async ({ page }) => {
 		const titleInput = page.locator('.title-input');
 		await expect(titleInput).toBeVisible();
+
+		/* Wait for hydration then clear and type */
+		await page.waitForTimeout(300);
+		await titleInput.click();
+		await titleInput.press('Meta+a');
+		await titleInput.pressSequentially('Test Title', { delay: 20 });
+
+		await page.waitForTimeout(100);
 		const currentValue = await titleInput.inputValue();
-		expect(currentValue.length).toBeGreaterThan(0);
+		expect(currentValue).toBe('Test Title');
 	});
 
 	test('slug auto-generates from title when unlocked', async ({ page }) => {
 		const slugLock = page.locator('.slug-lock');
 		await expect(slugLock).toBeVisible();
-		await expect(slugLock).toHaveAttribute('title', /auto-generate|locked/i);
+		await page.waitForTimeout(300);
 
 		const titleInput = page.locator('.title-input');
 		const slugInput = page.locator('.slug-input');
 
-		/* Unlock the slug if locked */
-		await slugLock.click();
+		/* Click unlock until tooltip says "auto-generates" (unlocked state) */
+		let lockTitle = await slugLock.getAttribute('title');
+		if (lockTitle && lockTitle.includes('locked')) {
+			await slugLock.click();
+			await page.waitForTimeout(100);
+		}
 
-		/* Clear and type a new title */
-		await titleInput.fill('');
-		await titleInput.fill('My Test Post Title');
-		await titleInput.dispatchEvent('input');
+		/* Verify unlocked: title should now say "auto-generates" */
+		lockTitle = await slugLock.getAttribute('title');
+		expect(lockTitle).toContain('auto-generates');
 
+		/* Type a new title — slug should follow */
+		await titleInput.click();
+		await titleInput.press('Meta+a');
+		await titleInput.pressSequentially('My Test Post Title', { delay: 20 });
+
+		await page.waitForTimeout(300);
 		const slugValue = await slugInput.inputValue();
 		expect(slugValue).toContain('my-test-post-title');
 	});
@@ -185,7 +202,7 @@ test.describe('Post Editor Page', () => {
 		const panel = page.locator('.panel-title', { hasText: 'Tags' });
 		await expect(panel).toBeVisible();
 
-		const tagInput = page.locator('#tag-input');
+		const tagInput = page.locator('input[placeholder="Add tag, press Enter"]');
 		await expect(tagInput).toBeVisible();
 	});
 
@@ -200,18 +217,22 @@ test.describe('Post Editor Page', () => {
 		const seoPanel = page.locator('.panel-title', { hasText: 'SEO' });
 		await expect(seoPanel).toBeVisible();
 
-		await expect(page.locator('#seo-meta-title')).toBeVisible();
-		await expect(page.locator('#seo-meta-desc')).toBeVisible();
+		await expect(page.locator('#seo-title')).toBeVisible();
+		await expect(page.locator('#seo-desc')).toBeVisible();
 		await expect(page.locator('#seo-keyword')).toBeVisible();
 	});
 
 	test('focus keyword analysis appears when keyword is entered', async ({ page }) => {
 		const keywordInput = page.locator('#seo-keyword');
-		await keywordInput.fill('welcome');
-		await keywordInput.dispatchEvent('input');
+		await keywordInput.click();
+		await keywordInput.fill('');
+		await keywordInput.pressSequentially('welcome', { delay: 30 });
 
-		const checks = page.locator('.keyword-checks .keyword-check');
-		await expect(checks.first()).toBeVisible();
+		/* Wait for Svelte reactivity */
+		await page.waitForTimeout(500);
+
+		const checks = page.locator('li.keyword-check');
+		await expect(checks.first()).toBeVisible({ timeout: 5000 });
 		expect(await checks.count()).toBe(4);
 	});
 

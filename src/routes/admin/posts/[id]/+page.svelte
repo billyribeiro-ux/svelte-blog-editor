@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { beforeNavigate } from '$app/navigation';
+	import { untrack } from 'svelte';
 	import BlogEditor from '$lib/editor/BlogEditor.svelte';
 	import TocPanel from '$lib/editor/TocPanel.svelte';
 	import TocFloat from '$lib/editor/TocFloat.svelte';
@@ -38,21 +39,29 @@
 	let seoMetaDescription = $state('');
 	let seoFocusKeyword = $state('');
 
-	/* Sync local state from server data (reactive to navigation) */
+	/* Sync local state from server data — only when the post ID changes (navigation) */
+	let syncedPostId = $state('');
+
 	$effect(() => {
-		title = initial.title;
-		slug = initial.slug;
-		slugManuallyEdited = !!(initial.slug && initial.slug !== generateSlug(initial.title));
-		status = initial.status;
-		publishedAt = initial.publishedAt ?? '';
-		excerpt = initial.excerpt;
-		featuredImage = initial.featuredImage;
-		selectedCategories = [...initial.categories];
-		selectedTags = [...initial.tags];
-		seoMetaTitle = initial.seo.metaTitle;
-		seoMetaDescription = initial.seo.metaDescription;
-		seoFocusKeyword = initial.seo.focusKeyword;
-		hasUnsavedChanges = false;
+		const id = initial.id;
+		untrack(() => {
+			if (id === syncedPostId) return;
+			syncedPostId = id;
+
+			title = initial.title;
+			slug = initial.slug;
+			slugManuallyEdited = !!(initial.slug && initial.slug !== generateSlug(initial.title));
+			status = initial.status;
+			publishedAt = initial.publishedAt ?? '';
+			excerpt = initial.excerpt;
+			featuredImage = initial.featuredImage;
+			selectedCategories = [...initial.categories];
+			selectedTags = [...initial.tags];
+			seoMetaTitle = initial.seo.metaTitle;
+			seoMetaDescription = initial.seo.metaDescription;
+			seoFocusKeyword = initial.seo.focusKeyword;
+			hasUnsavedChanges = false;
+		});
 	});
 
 	/* Editor */
