@@ -16,8 +16,11 @@
 	let highlightPopoverOpen = $state(false);
 	let youtubePopoverOpen = $state(false);
 	let videoPopoverOpen = $state(false);
+	let linkPopoverOpen = $state(false);
 	let youtubeUrl = $state('');
 	let videoUrl = $state('');
+	let linkUrl = $state('');
+	let linkNewTab = $state(true);
 
 	/* ─── Active state derivations ──────────────────────────────── */
 
@@ -39,6 +42,7 @@
 	let isTaskList = $derived(editor?.isActive('taskList') ?? false);
 	let isBlockquote = $derived(editor?.isActive('blockquote') ?? false);
 	let isCodeBlock = $derived(editor?.isActive('codeBlock') ?? false);
+	let isLink = $derived(editor?.isActive('link') ?? false);
 
 	/* ─── Commands ──────────────────────────────────────────────── */
 
@@ -67,6 +71,25 @@
 		}
 		videoUrl = '';
 		videoPopoverOpen = false;
+	}
+
+	function confirmLink(): void {
+		if (linkUrl.trim() && editor) {
+			editor
+				.chain()
+				.focus()
+				.extendMarkRange('link')
+				.setLink({ href: linkUrl.trim(), target: linkNewTab ? '_blank' : null })
+				.run();
+		}
+		linkUrl = '';
+		linkPopoverOpen = false;
+	}
+
+	function removeLink(): void {
+		if (!editor) return;
+		editor.chain().focus().extendMarkRange('link').unsetLink().run();
+		linkPopoverOpen = false;
 	}
 
 	function insertTable(): void {
@@ -351,6 +374,50 @@
 				</div>
 			{/snippet}
 		</Popover>
+		<Popover bind:open={linkPopoverOpen} align="start">
+			{#snippet trigger()}
+				<span
+					class={['toolbar-btn', { active: isLink }]}
+					aria-label="Insert Link"
+					title="Insert Link (⌘K)"
+				>
+					<Icon name="ph:link" size={18} />
+				</span>
+			{/snippet}
+			{#snippet content()}
+				<div class="url-popover-content">
+					<p class="color-popover-label">Link URL</p>
+					<input
+						class="url-popover-input"
+						type="url"
+						placeholder="https://..."
+						bind:value={linkUrl}
+						onkeydown={(e) => {
+							if (e.key === 'Enter') {
+								e.preventDefault();
+								confirmLink();
+							}
+						}}
+					/>
+					<label class="url-popover-checkbox">
+						<input type="checkbox" bind:checked={linkNewTab} />
+						Open in new tab
+					</label>
+					<div class="url-popover-actions">
+						<button class="url-popover-btn" type="button" onclick={confirmLink}>
+							<Icon name="ph:check" size={14} />
+							Apply
+						</button>
+						{#if isLink}
+							<button class="url-popover-btn-ghost" type="button" onclick={removeLink}>
+								<Icon name="ph:link-break" size={14} />
+								Remove
+							</button>
+						{/if}
+					</div>
+				</div>
+			{/snippet}
+		</Popover>
 		{@render toolbarButton('ph:table', 'Insert Table', false, insertTable)}
 		{@render toolbarButton('ph:minus', 'Horizontal Rule', false, () =>
 			cmd((e) => e.chain().focus().setHorizontalRule().run())
@@ -500,6 +567,45 @@
 
 			&::placeholder {
 				color: var(--color-text-muted, oklch(0.45 0.02 260));
+			}
+		}
+
+		.url-popover-checkbox {
+			display: flex;
+			align-items: center;
+			gap: 6px;
+			font-size: 0.75rem;
+			color: var(--color-text-muted, oklch(0.65 0.02 260));
+			cursor: pointer;
+
+			& input[type='checkbox'] {
+				accent-color: var(--color-accent, oklch(0.7 0.15 250));
+			}
+		}
+
+		.url-popover-actions {
+			display: flex;
+			gap: 6px;
+		}
+
+		.url-popover-btn-ghost {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			gap: 4px;
+			padding-block: 6px;
+			padding-inline: 12px;
+			border: 1px solid var(--color-border, oklch(0.3 0.02 260));
+			border-radius: 6px;
+			background: transparent;
+			color: var(--color-danger, oklch(0.65 0.22 25));
+			font-size: 0.8rem;
+			font-weight: 500;
+			cursor: pointer;
+			transition: background 0.1s ease;
+
+			&:hover {
+				background: oklch(0.65 0.22 25 / 0.1);
 			}
 		}
 

@@ -9,6 +9,7 @@
 	import type { Editor, JSONContent } from '@tiptap/core';
 	import type { PostData, PostStatus, CategoryRow, TagRow, TocItem } from '$lib/editor/types.js';
 	import { generateSlug } from '$lib/utils/slugify.js';
+	import { extractExcerpt } from '$lib/editor/create-editor.js';
 
 	let { data } = $props<{
 		data: {
@@ -74,6 +75,22 @@
 	let saveError = $state('');
 	let hasUnsavedChanges = $state(false);
 	let featuredImageModalOpen = $state(false);
+
+	/* Toast */
+	let toastMessage = $state('');
+	let toastType = $state<'success' | 'error'>('success');
+	let toastVisible = $state(false);
+	let toastTimeout: ReturnType<typeof setTimeout>;
+
+	function showToast(message: string, type: 'success' | 'error' = 'success'): void {
+		clearTimeout(toastTimeout);
+		toastMessage = message;
+		toastType = type;
+		toastVisible = true;
+		toastTimeout = setTimeout(() => {
+			toastVisible = false;
+		}, 3000);
+	}
 
 	let seoMetaTitleLength = $derived(seoMetaTitle.length);
 	let seoMetaDescLength = $derived(seoMetaDescription.length);
@@ -264,12 +281,15 @@
 				if (newStatus) status = currentStatus;
 				hasUnsavedChanges = false;
 				lastSavedAt = new Date().toLocaleTimeString();
+				showToast('Post saved successfully', 'success');
 			} else {
 				const body = await response.json().catch(() => null);
 				saveError = (body as { message?: string })?.message ?? `Save failed (${response.status})`;
+				showToast(saveError, 'error');
 			}
 		} catch (err) {
 			saveError = err instanceof Error ? err.message : 'Network error — could not save';
+			showToast(saveError, 'error');
 		} finally {
 			saving = false;
 		}
@@ -412,11 +432,12 @@
 		<!-- Sidebar -->
 		<aside class="editor-sidebar">
 			<!-- Publish Panel -->
-			<section class="sidebar-panel">
-				<h3 class="panel-title">
+			<details class="sidebar-panel" open>
+				<summary class="panel-title">
 					<Icon name="ph:paper-plane-tilt" size={16} />
 					Publish
-				</h3>
+					<Icon name="ph:caret-down" size={12} class="panel-chevron" />
+				</summary>
 				<div class="panel-body">
 					<div class="field">
 						<label class="field-label" for="post-status">Status</label>
@@ -448,14 +469,15 @@
 						</div>
 					{/if}
 				</div>
-			</section>
+			</details>
 
 			<!-- Categories -->
-			<section class="sidebar-panel">
-				<h3 class="panel-title">
+			<details class="sidebar-panel" open>
+				<summary class="panel-title">
 					<Icon name="ph:folders" size={16} />
 					Categories
-				</h3>
+					<Icon name="ph:caret-down" size={12} class="panel-chevron" />
+				</summary>
 				<div class="panel-body category-list">
 					{#snippet categoryNode(nodes: CategoryNode[], depth: number)}
 						{#each nodes as cat}
@@ -474,14 +496,15 @@
 					{/snippet}
 					{@render categoryNode(categoryTree, 0)}
 				</div>
-			</section>
+			</details>
 
 			<!-- Tags -->
-			<section class="sidebar-panel">
-				<h3 class="panel-title">
+			<details class="sidebar-panel" open>
+				<summary class="panel-title">
 					<Icon name="ph:tag" size={16} />
 					Tags
-				</h3>
+					<Icon name="ph:caret-down" size={12} class="panel-chevron" />
+				</summary>
 				<div class="panel-body">
 					<div class="tag-input-wrapper">
 						<input
@@ -537,21 +560,24 @@
 										class="tag-remove"
 										type="button"
 										aria-label="Remove tag"
-										onclick={() => removeTag(tagId)}>×</button
+										onclick={() => removeTag(tagId)}
 									>
+										<Icon name="ph:x" size={12} />
+									</button>
 								</span>
 							{/each}
 						</div>
 					{/if}
 				</div>
-			</section>
+			</details>
 
 			<!-- Featured Image -->
-			<section class="sidebar-panel">
-				<h3 class="panel-title">
+			<details class="sidebar-panel" open>
+				<summary class="panel-title">
 					<Icon name="ph:image" size={16} />
 					Featured Image
-				</h3>
+					<Icon name="ph:caret-down" size={12} class="panel-chevron" />
+				</summary>
 				<div class="panel-body">
 					{#if featuredImage}
 						<img src={featuredImage} alt="Featured" class="featured-preview" />
@@ -578,14 +604,15 @@
 						</button>
 					{/if}
 				</div>
-			</section>
+			</details>
 
 			<!-- Excerpt -->
-			<section class="sidebar-panel">
-				<h3 class="panel-title">
+			<details class="sidebar-panel" open>
+				<summary class="panel-title">
 					<Icon name="ph:article" size={16} />
 					Excerpt
-				</h3>
+					<Icon name="ph:caret-down" size={12} class="panel-chevron" />
+				</summary>
 				<div class="panel-body">
 					<textarea
 						class="field-textarea"
@@ -596,15 +623,30 @@
 							hasUnsavedChanges = true;
 						}}
 					></textarea>
+					<button
+						class="btn-auto-excerpt"
+						type="button"
+						title="Auto-generate excerpt from post content"
+						onclick={() => {
+							if (editor) {
+								excerpt = extractExcerpt(editor.getJSON());
+								hasUnsavedChanges = true;
+							}
+						}}
+					>
+						<Icon name="ph:sparkle" size={14} />
+						Auto-generate
+					</button>
 				</div>
-			</section>
+			</details>
 
 			<!-- SEO -->
-			<section class="sidebar-panel">
-				<h3 class="panel-title">
+			<details class="sidebar-panel" open>
+				<summary class="panel-title">
 					<Icon name="ph:magnifying-glass" size={16} />
 					SEO
-				</h3>
+					<Icon name="ph:caret-down" size={12} class="panel-chevron" />
+				</summary>
 				<div class="panel-body">
 					<div class="field">
 						<label class="field-label" for="seo-title">
@@ -665,8 +707,19 @@
 							{/each}
 						</ul>
 					{/if}
+
+					<!-- SERP Preview -->
+					<div class="serp-preview" aria-label="Google search result preview">
+						<p class="serp-title">{seoMetaTitle || title || 'Page Title'}</p>
+						<p class="serp-url">example.com/{slug || 'page-slug'}</p>
+						<p class="serp-desc">
+							{seoMetaDescription ||
+								excerpt ||
+								'No description set. Add a meta description for better SEO.'}
+						</p>
+					</div>
 				</div>
-			</section>
+			</details>
 		</aside>
 	</div>
 
@@ -682,6 +735,21 @@
 
 <TocPanel items={tocItems} bind:open={tocOpen} scrollContainer={editorScrollEl} />
 <TocFloat items={tocItems} scrollContainer={editorScrollEl} />
+
+{#if toastVisible}
+	<div class="toast toast-{toastType}" role="alert" aria-live="assertive">
+		<Icon name={toastType === 'success' ? 'ph:check-circle' : 'ph:warning-circle'} size={16} />
+		<span>{toastMessage}</span>
+		<button
+			class="toast-close"
+			type="button"
+			aria-label="Dismiss"
+			onclick={() => (toastVisible = false)}
+		>
+			<Icon name="ph:x" size={12} />
+		</button>
+	</div>
+{/if}
 
 <style>
 	@layer pages {
@@ -879,7 +947,7 @@
 			}
 		}
 
-		/* ─── Sidebar Panels ─────────────────────────────────────── */
+		/* ─── Sidebar Panels (collapsible <details>) ────────────── */
 
 		.sidebar-panel {
 			border-block-end: 1px solid var(--color-border, oklch(0.2 0.01 260));
@@ -898,6 +966,28 @@
 			letter-spacing: 0.04em;
 			color: var(--color-text-muted, oklch(0.6 0.02 260));
 			background: var(--color-surface, oklch(0.12 0.005 260));
+			cursor: pointer;
+			user-select: none;
+			list-style: none;
+			transition: color 0.12s ease;
+
+			&::marker,
+			&::-webkit-details-marker {
+				display: none;
+			}
+
+			&:hover {
+				color: var(--color-text, oklch(0.85 0 0));
+			}
+		}
+
+		:global(.panel-chevron) {
+			margin-inline-start: auto;
+			transition: transform 0.2s ease;
+		}
+
+		.sidebar-panel[open] > .panel-title :global(.panel-chevron) {
+			transform: rotate(180deg);
 		}
 
 		.panel-body {
@@ -906,6 +996,76 @@
 			display: flex;
 			flex-direction: column;
 			gap: 10px;
+		}
+
+		/* ─── Auto-excerpt Button ────────────────────────────────── */
+
+		.btn-auto-excerpt {
+			display: inline-flex;
+			align-items: center;
+			gap: 4px;
+			padding-block: 4px;
+			padding-inline: 8px;
+			border: 1px solid var(--color-border, oklch(0.3 0.02 260));
+			border-radius: 4px;
+			background: transparent;
+			color: var(--color-text-muted, oklch(0.6 0.02 260));
+			font-size: 0.7rem;
+			cursor: pointer;
+			align-self: flex-start;
+			transition:
+				background 0.1s ease,
+				color 0.1s ease;
+
+			&:hover {
+				background: var(--color-hover, oklch(0.22 0.02 260));
+				color: var(--color-text, oklch(0.85 0 0));
+			}
+		}
+
+		/* ─── SERP Preview ───────────────────────────────────────── */
+
+		.serp-preview {
+			margin-block-start: 8px;
+			padding: 12px;
+			border: 1px solid var(--color-border, oklch(0.25 0.02 260));
+			border-radius: 8px;
+			background: oklch(0.98 0.005 260);
+			font-family: Arial, sans-serif;
+		}
+
+		.serp-title {
+			font-size: 1.1em;
+			color: oklch(0.4 0.18 260);
+			text-decoration: underline;
+			text-decoration-color: transparent;
+			margin: 0;
+			line-height: 1.3;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+
+			&:hover {
+				text-decoration-color: oklch(0.4 0.18 260);
+			}
+		}
+
+		.serp-url {
+			font-size: 0.8em;
+			color: oklch(0.4 0.15 145);
+			margin: 2px 0 4px;
+		}
+
+		.serp-desc {
+			font-size: 0.8em;
+			color: oklch(0.35 0 0);
+			line-height: 1.4;
+			margin: 0;
+			display: -webkit-box;
+			-webkit-line-clamp: 2;
+			line-clamp: 2;
+			-webkit-box-orient: vertical;
+			overflow: hidden;
 		}
 
 		/* ─── Fields ─────────────────────────────────────────────── */
@@ -1116,8 +1276,7 @@
 		.btn-set-featured {
 			display: inline-flex;
 			align-items: center;
-			gap: 6px;
-			background: none;
+			gap: 8px;
 			border: 2px dashed var(--color-border, oklch(0.3 0.02 260));
 			border-radius: 8px;
 			color: var(--color-text-muted, oklch(0.55 0.02 260));
@@ -1134,6 +1293,70 @@
 			&:hover {
 				border-color: var(--color-accent, oklch(0.7 0.15 250));
 				color: var(--color-accent, oklch(0.7 0.15 250));
+			}
+		}
+
+		/* ─── Toast Notification ──────────────────────────────────── */
+
+		:global(.toast) {
+			position: fixed;
+			inset-block-end: 24px;
+			inset-inline-end: 24px;
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			padding-block: 12px;
+			padding-inline: 16px;
+			border-radius: 10px;
+			font-size: 0.85rem;
+			font-weight: 500;
+			z-index: 9999;
+			animation: toast-slide-in 0.25s ease-out;
+			box-shadow:
+				0 8px 24px oklch(0 0 0 / 0.3),
+				0 2px 6px oklch(0 0 0 / 0.15);
+		}
+
+		:global(.toast-success) {
+			background: oklch(0.18 0.04 145);
+			color: oklch(0.85 0.12 145);
+			border: 1px solid oklch(0.3 0.08 145);
+		}
+
+		:global(.toast-error) {
+			background: oklch(0.18 0.04 25);
+			color: oklch(0.85 0.12 25);
+			border: 1px solid oklch(0.3 0.08 25);
+		}
+
+		:global(.toast-close) {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			inline-size: 20px;
+			block-size: 20px;
+			border: none;
+			border-radius: 4px;
+			background: transparent;
+			color: inherit;
+			opacity: 0.6;
+			cursor: pointer;
+			margin-inline-start: 4px;
+			transition: opacity 0.1s ease;
+
+			&:hover {
+				opacity: 1;
+			}
+		}
+
+		@keyframes toast-slide-in {
+			from {
+				opacity: 0;
+				transform: translateY(12px);
+			}
+			to {
+				opacity: 1;
+				transform: translateY(0);
 			}
 		}
 	}

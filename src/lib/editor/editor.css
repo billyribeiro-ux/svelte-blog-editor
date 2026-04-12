@@ -234,23 +234,64 @@
 		font-size: inherit;
 	}
 
+	/* Code block language label hidden when controls overlay is present */
 	:global(.ProseMirror pre[data-language]::before) {
-		content: attr(data-language);
+		display: none;
+	}
+
+	:global(.ProseMirror .code-block-controls) {
 		position: absolute;
-		inset-block-start: 0;
-		inset-inline-end: 0;
-		padding-block: 3px;
-		padding-inline: 10px;
+		inset-block-start: 6px;
+		inset-inline-end: 6px;
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		opacity: 0;
+		transition: opacity 0.15s ease;
+		z-index: 2;
+	}
+
+	:global(.ProseMirror pre:hover .code-block-controls),
+	:global(.ProseMirror pre:focus-within .code-block-controls) {
+		opacity: 1;
+	}
+
+	:global(.ProseMirror .code-block-lang-select) {
+		padding-block: 2px;
+		padding-inline: 6px;
+		border: 1px solid oklch(0.3 0.02 260);
+		border-radius: 4px;
+		background: oklch(0.16 0.01 260);
+		color: oklch(0.7 0.02 260);
 		font-size: 0.65rem;
-		font-weight: 600;
 		font-family: var(--font-body, system-ui, sans-serif);
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
-		color: oklch(0.6 0.02 260);
-		background: oklch(0.18 0.01 260);
-		border-block-end: 1px solid var(--color-border, oklch(0.3 0.02 260));
-		border-inline-start: 1px solid var(--color-border, oklch(0.3 0.02 260));
-		border-radius: 0 9px 0 6px;
+		cursor: pointer;
+		outline: none;
+
+		&:focus {
+			border-color: var(--color-accent, oklch(0.7 0.15 250));
+		}
+	}
+
+	:global(.ProseMirror .code-block-copy-btn) {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		inline-size: 26px;
+		block-size: 26px;
+		border: 1px solid oklch(0.3 0.02 260);
+		border-radius: 4px;
+		background: oklch(0.16 0.01 260);
+		color: oklch(0.65 0.02 260);
+		cursor: pointer;
+		transition:
+			background 0.1s ease,
+			color 0.1s ease;
+
+		&:hover {
+			background: oklch(0.22 0.02 260);
+			color: oklch(0.9 0 0);
+		}
 	}
 
 	/* ─── Tables ─────────────────────────────────────────────────── */
@@ -510,23 +551,15 @@
 		text-align: justify;
 	}
 
-	/* ─── Selection ──────────────────────────────────────────────── */
-
-	:global(.ProseMirror ::selection) {
-		background: oklch(0.7 0.15 250 / 0.3);
-	}
-
-	/* ─── Focus Styles ───────────────────────────────────────────── */
-
-	:global(.ProseMirror:focus-visible) {
-		outline: none;
-	}
-
 	/* ─── Dark Mode Support ──────────────────────────────────────── */
 
 	@media (prefers-color-scheme: light) {
 		:global(.ProseMirror) {
 			color: var(--color-text-light, oklch(0.15 0 0));
+		}
+
+		:global(.ProseMirror ::selection) {
+			background: oklch(0.55 0.2 250 / 0.25);
 		}
 
 		:global(.ProseMirror code) {
@@ -539,12 +572,35 @@
 			border-color: oklch(0.85 0.01 260);
 		}
 
+		:global(.ProseMirror .code-block-lang-select) {
+			background: oklch(0.94 0.005 260);
+			border-color: oklch(0.82 0.01 260);
+			color: oklch(0.4 0.02 260);
+		}
+
+		:global(.ProseMirror .code-block-copy-btn) {
+			background: oklch(0.94 0.005 260);
+			border-color: oklch(0.82 0.01 260);
+			color: oklch(0.4 0.02 260);
+		}
+
 		:global(.ProseMirror th) {
 			background: oklch(0.95 0.005 260);
 		}
 
 		:global(.ProseMirror blockquote) {
 			color: oklch(0.35 0.02 260);
+			background: oklch(0.55 0.2 250 / 0.04);
+		}
+
+		:global(.ProseMirror hr) {
+			background: linear-gradient(
+				to right,
+				transparent,
+				oklch(0.75 0.01 260) 20%,
+				oklch(0.75 0.01 260) 80%,
+				transparent
+			);
 		}
 	}
 
